@@ -80,7 +80,7 @@ export const Application: React.FC = () => {
         (category: SensorCategory) => {
             const inCategory = data.groups.filter(group => group.category === category);
             if (inCategory.length === 0) {
-                return data.groups;
+                return [];
             }
 
             const uncategorised = data.groups.filter(group => group.category === 'unknown');
