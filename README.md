@@ -1,232 +1,84 @@
 # Cockpit Sensors
 
-module that displays all data reported by lm-sensors
+Cockpit Sensors is a [Cockpit](https://cockpit-project.org/) module that displays
+telemetry provided by `lm-sensors`. The project ships a browser bundle that can
+be installed on any host running Cockpit and offers a development environment
+based on Vite, React and PatternFly.
 
-# Usage
+## Requirements
 
-- Download the lastest [Sensors release](https://github.com/ocristopfer/cockpit-sensors/releases)
-- Extract the content of dist folder to /usr/share/cockpit/sensors
-- Check if Sensors tools is show on menu
+- **Node.js 20.x** (the codebase is tested with Node 20; earlier versions are
+  not supported).
+- **npm 10** (ships with Node 20) with access to the public npm registry.
+- Optional but recommended: `make`, `gettext` and a working Cockpit instance for
+  integration tests.
 
-- Installation script provided by [@subz390](https://github.com/subz390):
+Install dependencies once per clone with:
 
-```shell
-wget https://github.com/ocristopfer/cockpit-sensors/releases/latest/download/cockpit-sensors.tar.xz && \
-  tar -xf cockpit-sensors.tar.xz cockpit-sensors/dist && \
-  mv cockpit-sensors/dist /usr/share/cockpit/sensors && \
-  rm -r cockpit-sensors && \
-  rm cockpit-sensors.tar.xz
+```bash
+npm ci
 ```
 
-- .deb package:
-  [cockpit-sensors.deb](https://github.com/ocristopfer/cockpit-sensors/releases/latest/download/cockpit-sensors.deb)
+> ℹ️ `npm ci` removes existing `node_modules/` and reproduces the lockfile state
+> exactly, which keeps the development environment deterministic.
 
-- .rpm package:
-  [cockpit-sensors.noarch.rpm](https://github.com/ocristopfer/cockpit-sensors/releases/latest/download/cockpit-sensors.noarch.rpm)
+## Development workflow
 
-# Prints
+| Task | Command |
+| ---- | ------- |
+| Start the development server with file watching | `npm run dev`
+| Build the production bundle | `npm run build`
+| Run the Vitest suite with coverage | `npm run test`
+| Run ESLint over the repository | `npm run lint`
 
-![alt text](https://i.ibb.co/tQ22dF4/cockpit.png)
+### Mock data with `VITE_MOCK`
 
-# Module created using Starter Kit
+When developing without a running Cockpit backend you can ask the application to
+return mocked data:
 
-# Cockpit Starter Kit
-
-Scaffolding for a [Cockpit](https://cockpit-project.org/) module.
-
-# Development dependencies
-
-On Debian/Ubuntu:
-
-    $ sudo apt install gettext nodejs npm make
-
-On Fedora:
-
-    $ sudo dnf install gettext nodejs npm make
-
-# Getting and building the source
-
-These commands check out the source and build it into the `dist/` directory:
-
-```
-git clone https://github.com/cockpit-project/starter-kit.git
-cd starter-kit
-make
+```bash
+VITE_MOCK=true npm run dev
 ```
 
-# Installing
+`VITE_MOCK` is also honoured by the production build (`npm run build`) if you
+need to ship a bundle with mock values for demos.
 
-`make install` compiles and installs the package in `/usr/local/share/cockpit/`. The
-convenience targets `srpm` and `rpm` build the source and binary rpms,
-respectively. Both of these make use of the `dist` target, which is used
-to generate the distribution tarball. In `production` mode, source files are
-automatically minified and compressed. Set `NODE_ENV=production` if you want to
-duplicate this behavior.
+## Installing the bundle in Cockpit
 
-For development, you usually want to run your module straight out of the git
-tree. To do that, run `make devel-install`, which links your checkout to the
-location were cockpit-bridge looks for packages. If you prefer to do
-this manually:
+1. Build the project:
+   ```bash
+   npm run build
+   ```
+2. Copy the generated `dist/` directory to your Cockpit installation. On most
+   systems this is `/usr/share/cockpit/sensors`:
+   ```bash
+   sudo mkdir -p /usr/share/cockpit/sensors
+   sudo cp -r dist/* /usr/share/cockpit/sensors/
+   ```
+3. Refresh the Cockpit UI in your browser. The Sensors entry should now be
+   available in the navigation menu.
 
-```
-mkdir -p ~/.local/share/cockpit
-ln -s `pwd`/dist ~/.local/share/cockpit/starter-kit
-```
+To remove a development installation that was linked with `~/.local/share`,
+delete the directory or symlink:
 
-After changing the code and running `make` again, reload the Cockpit page in
-your browser.
-
-You can also use
-[watch mode](https://esbuild.github.io/api/#watch) to
-automatically update the bundle on every code change with
-
-    $ ./build.js -w
-
-or
-
-    $ make watch
-
-When developing against a virtual machine, watch mode can also automatically upload
-the code changes by setting the `RSYNC` environment variable to
-the remote hostname.
-
-    $ RSYNC=c make watch
-
-When developing against a remote host as a normal user, `RSYNC_DEVEL` can be
-set to upload code changes to `~/.local/share/cockpit/` instead of
-`/usr/local`.
-
-    $ RSYNC_DEVEL=example.com make watch
-
-To "uninstall" the locally installed version, run `make devel-uninstall`, or
-remove manually the symlink:
-
-    rm ~/.local/share/cockpit/starter-kit
-
-# Running eslint
-
-Cockpit Starter Kit uses [ESLint](https://eslint.org/) to automatically check
-JavaScript code style in `.js` and `.jsx` files.
-
-eslint is executed as part of `test/common/static-code`, aka. `make codecheck`.
-
-For developer convenience, the ESLint can be started explicitly by:
-
-    $ npm run eslint
-
-Violations of some rules can be fixed automatically by:
-
-    $ npm run eslint:fix
-
-Rules configuration can be found in the `.eslintrc.json` file.
-
-## Running stylelint
-
-Cockpit uses [Stylelint](https://stylelint.io/) to automatically check CSS code
-style in `.css` and `scss` files.
-
-stylelint is executed as part of `test/common/static-code`, aka. `make codecheck`.
-
-For developer convenience, the Stylelint can be started explicitly by:
-
-    $ npm run stylelint
-
-Violations of some rules can be fixed automatically by:
-
-    $ npm run stylelint:fix
-
-Rules configuration can be found in the `.stylelintrc.json` file.
-
-# Running tests locally
-
-Run `make check` to build an RPM, install it into a standard Cockpit test VM
-(centos-8-stream by default), and run the test/check-application integration test on
-it. This uses Cockpit's Chrome DevTools Protocol based browser tests, through a
-Python API abstraction. Note that this API is not guaranteed to be stable, so
-if you run into failures and don't want to adjust tests, consider checking out
-Cockpit's test/common from a tag instead of main (see the `test/common`
-target in `Makefile`).
-
-After the test VM is prepared, you can manually run the test without rebuilding
-the VM, possibly with extra options for tracing and halting on test failures
-(for interactive debugging):
-
-    TEST_OS=centos-8-stream test/check-application -tvs
-
-It is possible to setup the test environment without running the tests:
-
-    TEST_OS=centos-8-stream make prepare-check
-
-You can also run the test against a different Cockpit image, for example:
-
-    TEST_OS=fedora-34 make check
-
-# Running tests in CI
-
-These tests can be run in [Cirrus CI](https://cirrus-ci.org/), on their free
-[Linux Containers](https://cirrus-ci.org/guide/linux/) environment which
-explicitly supports `/dev/kvm`. Please see [Quick
-Start](https://cirrus-ci.org/guide/quick-start/) how to set up Cirrus CI for
-your project after forking from starter-kit.
-
-The included [.cirrus.yml](./.cirrus.yml) runs the integration tests for two
-operating systems (Fedora and CentOS 8). Note that if/once your project grows
-bigger, or gets frequent changes, you may need to move to a paid account, or
-different infrastructure with more capacity.
-
-Tests also run in [Packit](https://packit.dev/) for all currently supported
-Fedora releases; see the [packit.yaml](./packit.yaml) control file. You need to
-[enable Packit-as-a-service](https://packit.dev/docs/packit-service/) in your GitHub project to use this.
-To run the tests in the exact same way for upstream pull requests and for
-[Fedora package update gating](https://docs.fedoraproject.org/en-US/ci/), the
-tests are wrapped in the [FMF metadata format](https://github.com/teemtee/fmf)
-for using with the [tmt test management tool](https://docs.fedoraproject.org/en-US/ci/tmt/).
-Note that Packit tests can _not_ run their own virtual machine images, thus
-they only run [@nondestructive tests](https://github.com/cockpit-project/cockpit/blob/main/test/common/testlib.py).
-
-# Customizing
-
-After cloning the Starter Kit you should rename the files, package names, and
-labels to your own project's name. Use these commands to find out what to
-change:
-
-    find -iname '*starter*'
-    git grep -i starter
-
-# Automated release
-
-Once your cloned project is ready for a release, you should consider automating
-that. The intention is that the only manual step for releasing a project is to create
-a signed tag for the version number, which includes a summary of the noteworthy
-changes:
-
-```
-123
-
-- this new feature
-- fix bug #123
+```bash
+rm -rf ~/.local/share/cockpit/sensors
 ```
 
-Pushing the release tag triggers the [release.yml](.github/workflows/release.yml.disabled)
-[GitHub action](https://github.com/features/actions) workflow. This creates the
-official release tarball and publishes as upstream release to GitHub. The
-workflow is disabled by default -- to use it, edit the file as per the comment
-at the top, and rename it to just `*.yml`.
+## Testing and linting
 
-The Fedora and COPR releases are done with [Packit](https://packit.dev/),
-see the [packit.yaml](./packit.yaml) control file.
+- `npm run test` executes the full [Vitest](https://vitest.dev/) suite. Use
+  `npm run test -- --watch` or `npm run test:watch` for an interactive loop.
+- `npm run lint` runs ESLint using the repository configuration. To lint styles,
+  run Stylelint directly: `npx stylelint "src/**/*.scss"`.
 
-# Automated maintenance
+Always run both commands before sending changes for review or release.
 
-It is important to keep your [NPM modules](./package.json) up to date, to keep
-up with security updates and bug fixes. This is done with the
-[npm-update bot script](https://github.com/cockpit-project/bots/blob/main/npm-update)
-which is run weekly or upon [manual request](https://github.com/cockpit-project/starter-kit/actions) through the
-[npm-update.yml](.github/workflows/npm-update.yml) [GitHub action](https://github.com/features/actions).
+## Releasing
 
-# Further reading
+1. Ensure the Vitest suite and lint checks pass.
+2. Run `npm run build` to create the production bundle.
+3. Package and distribute `dist/` (for example as a tarball, Debian package or
+   RPM) through your preferred channels.
 
-- The [Starter Kit announcement](https://cockpit-project.org/blog/cockpit-starter-kit.html)
-  blog post explains the rationale for this project.
-- [Cockpit Deployment and Developer documentation](https://cockpit-project.org/guide/latest/)
-- [Make your project easily discoverable](https://cockpit-project.org/blog/making-a-cockpit-application.html)
+For Cockpit packaging details refer to the [official documentation](https://cockpit-project.org/guide/latest/).
