@@ -108,7 +108,7 @@ remove manually the symlink:
 Cockpit Starter Kit uses [ESLint](https://eslint.org/) to automatically check
 JavaScript code style in `.js` and `.jsx` files.
 
-eslint is executed as part of `test/static-code`, aka. `make codecheck`.
+eslint is executed as part of `test/common/static-code`, aka. `make codecheck`.
 
 For developer convenience, the ESLint can be started explicitly by:
 
@@ -125,7 +125,7 @@ Rules configuration can be found in the `.eslintrc.json` file.
 Cockpit uses [Stylelint](https://stylelint.io/) to automatically check CSS code
 style in `.css` and `scss` files.
 
-styleint is executed as part of `test/static-code`, aka. `make codecheck`.
+stylelint is executed as part of `test/common/static-code`, aka. `make codecheck`.
 
 For developer convenience, the Stylelint can be started explicitly by:
 

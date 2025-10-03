@@ -26,8 +26,7 @@ import {
     Tab,
     TabTitleText,
     Tabs,
-    Text,
-    TextContent,
+    Content,
 } from '@patternfly/react-core';
 
 import { SensorTable } from '../components/SensorTable';
@@ -101,18 +100,18 @@ export const Application: React.FC = () => {
                 >
                     {TABS.map(tab => (
                         <Tab key={tab.eventKey} eventKey={tab.eventKey} title={<TabTitleText>{tab.title}</TabTitleText>}>
-                            <TextContent>
-                                <Text component="h2">{tab.title}</Text>
-                                <Text component="p">{tab.description}</Text>
+                            <Content>
+                                <h2>{tab.title}</h2>
+                                <p>{tab.description}</p>
                                 {!isMocked && !isLoading && (
-                                    <Text component="small">
+                                    <small>
                                         {_('Live sensor data will appear once the service integration is enabled.')}
-                                    </Text>
+                                    </small>
                                 )}
-                            </TextContent>
+                            </Content>
                             <div style={{ marginTop: 'var(--pf-global--spacer--lg)' }}>
                                 {isLoading ? (
-                                    <Text component="p">{_('Loading sensor data...')}</Text>
+                                    <p>{_('Loading sensor data...')}</p>
                                 ) : (
                                     <SensorTable groups={getGroupsForCategory(tab.category)} />
                                 )}
