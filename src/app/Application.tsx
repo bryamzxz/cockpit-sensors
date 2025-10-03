@@ -79,11 +79,16 @@ export const Application: React.FC = () => {
     const getGroupsForCategory = React.useCallback(
         (category: SensorCategory) => {
             const inCategory = data.groups.filter(group => group.category === category);
+            const uncategorised = data.groups.filter(group => group.category === 'unknown');
+
             if (inCategory.length === 0) {
-                return data.groups;
+                if (uncategorised.length > 0 && uncategorised.length === data.groups.length) {
+                    return uncategorised;
+                }
+
+                return [];
             }
 
-            const uncategorised = data.groups.filter(group => group.category === 'unknown');
             return uncategorised.length > 0 ? [...inCategory, ...uncategorised] : inCategory;
         },
         [data.groups],
