@@ -2,8 +2,8 @@
 
 Cockpit Sensors is a [Cockpit](https://cockpit-project.org/) module that displays
 telemetry provided by `lm-sensors`. The project ships a browser bundle that can
-be installed on any host running Cockpit and offers a development environment
-based on Vite, React and PatternFly.
+be installed on any host running Cockpit and builds through a custom
+`build.js` pipeline powered by esbuild, React and PatternFly.
 
 ## Requirements
 
@@ -24,12 +24,27 @@ npm ci
 
 ## Development workflow
 
+The project uses a handcrafted esbuild script (`build.js`) instead of Vite. The
+script compiles TypeScript, SCSS and static assets into `dist/`, optionally
+rebuilding when files change.
+
 | Task | Command |
 | ---- | ------- |
-| Start the development server with file watching | `npm run dev`
+| Rebuild the bundle in watch mode | `npm run dev`
 | Build the production bundle | `npm run build`
 | Run the Vitest suite with coverage | `npm run test`
 | Run ESLint over the repository | `npm run lint`
+
+### Building and watching
+
+- `npm run build` executes `node ./build.js` once and writes the optimised
+  output to `dist/`.
+- `npm run dev` runs the same script with `--watch`. esbuild listens for
+  changes in `src/` and `vendor/`, rebuilding the bundle incrementally. This
+  command does **not** start a dev server; open the bundle through Cockpit or
+  serve `dist/` with a static file server (for example, `npx serve dist` or
+  `python -m http.server --directory dist`) if you need to preview the module
+  in a browser outside of Cockpit.
 
 ### Mock data with `VITE_MOCK`
 
