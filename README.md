@@ -41,7 +41,11 @@ VITE_MOCK=true npm run dev
 ```
 
 `VITE_MOCK` is also honoured by the production build (`npm run build`) if you
-need to ship a bundle with mock values for demos.
+need to ship a bundle with mock values for demos. The esbuild script reads the
+environment variable and injects it into the bundle before `src/index.tsx`
+executes, exposing it on `globalThis.VITE_MOCK` (and `import.meta.env.VITE_MOCK`)
+so the React hooks resolve the correct data source in both development and
+production builds.
 
 ## Installing the bundle in Cockpit
 
