@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises';
 import nodeFs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import esbuild from 'esbuild';
 import * as sass from 'sass';
@@ -58,117 +58,9 @@ function staticAssetsPlugin({ outdir: assetsOutdir, assets }) {
 }
 
 function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded' } = {}) {
-    const resolutionCache = new Map();
-
-    async function fileExists(filePath) {
-        try {
-            const stats = await fs.stat(filePath);
-            return stats.isFile();
-        } catch {
-            return false;
-        }
-    }
-
-    async function directoryExists(directoryPath) {
-        try {
-            const stats = await fs.stat(directoryPath);
-            return stats.isDirectory();
-        } catch {
-            return false;
-        }
-    }
-
-    async function resolveImport(candidate) {
-        if (resolutionCache.has(candidate))
-            return resolutionCache.get(candidate);
-
-        let resolved = null;
-        const extension = path.extname(candidate);
-
-        if (extension) {
-            if (await fileExists(candidate)) {
-                resolved = candidate;
-            } else {
-                const underscored = path.join(path.dirname(candidate), `_${path.basename(candidate)}`);
-                if (await fileExists(underscored))
-                    resolved = underscored;
-            }
-        } else {
-            if (await fileExists(candidate)) {
-                resolved = candidate;
-            } else {
-                const extensions = ['.scss', '.sass', '.css'];
-
-                for (const ext of extensions) {
-                    resolved = await resolveImport(candidate + ext);
-                    if (resolved)
-                        break;
-                }
-
-                if (!resolved && await directoryExists(candidate)) {
-                    resolved = await resolveImport(path.join(candidate, 'index'));
-
-                    if (!resolved)
-                        resolved = await resolveImport(path.join(candidate, '_index'));
-                }
-            }
-        }
-
-        resolutionCache.set(candidate, resolved);
-        return resolved;
-    }
-
-    function createImporter(resolvedLoadPaths) {
-        return {
-            async canonicalize(url, { containingUrl }) {
-                if (url.startsWith('sass:'))
-                    return null;
-
-                const cleanUrl = url.startsWith('~') ? url.slice(1) : url;
-                const baseDir = containingUrl && containingUrl.protocol === 'file:'
-                    ? path.dirname(fileURLToPath(containingUrl))
-                    : process.cwd();
-                const candidates = new Set();
-
-                if (cleanUrl.startsWith('file://')) {
-                    candidates.add(fileURLToPath(cleanUrl));
-                } else if (path.isAbsolute(cleanUrl)) {
-                    candidates.add(cleanUrl);
-                } else {
-                    candidates.add(path.resolve(baseDir, cleanUrl));
-
-                    for (const loadPath of resolvedLoadPaths)
-                        candidates.add(path.join(loadPath, cleanUrl));
-                }
-
-                for (const candidate of candidates) {
-                    const resolved = await resolveImport(candidate);
-                    if (resolved)
-                        return pathToFileURL(resolved);
-                }
-
-                return null;
-            },
-            async load(canonicalUrl) {
-                if (canonicalUrl.protocol !== 'file:')
-                    return null;
-
-                const filePath = fileURLToPath(canonicalUrl);
-                const contents = await fs.readFile(filePath, 'utf8');
-
-                return {
-                    contents,
-                    syntax: 'scss',
-                };
-            },
-        };
-    }
-
     return {
         name: 'sass-loader',
         setup(build) {
-            build.onStart(() => resolutionCache.clear());
-
             build.onLoad({ filter: /\.scss$/ }, async args => {
                 const resolvedLoadPaths = [
                     path.dirname(args.path),
@@ -180,7 +72,6 @@ function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded
                     quietDeps: true,
                     sourceMap,
                     style,
-                    importers: [createImporter(resolvedLoadPaths)],
                 });
 
                 const watchFiles = result.loadedUrls?.map(url => fileURLToPath(url)) ?? [];
