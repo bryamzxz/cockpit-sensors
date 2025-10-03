@@ -69,6 +69,7 @@ function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded
 
                 const result = await sass.compileAsync(args.path, {
                     loadPaths: resolvedLoadPaths,
+                    importers: [new sass.NodePackageImporter()],
                     quietDeps: true,
                     sourceMap,
                     style,
