@@ -105,8 +105,12 @@ function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded
                         break;
                 }
 
-                if (!resolved && await directoryExists(candidate))
+                if (!resolved && await directoryExists(candidate)) {
                     resolved = await resolveImport(path.join(candidate, 'index'));
+
+                    if (!resolved)
+                        resolved = await resolveImport(path.join(candidate, '_index'));
+                }
             }
         }
 
