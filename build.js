@@ -219,10 +219,10 @@ function watch_dirs(dir, on_change) {
 const context = await esbuild.context({
     ...(!production ? { sourcemap: 'linked' } : {}),
     bundle: true,
-    entryPoints: ['./src/index.js'],
+    entryPoints: ['./src/index.tsx'],
     external: ['cockpit', 'cockpit-dark-theme', '*.woff', '*.woff2', '*.jpg', '*.svg', '../../assets*'],
     legalComments: 'external',
-    loader: { '.js': 'jsx', '.scss': 'css' },
+    loader: { '.js': 'jsx', '.scss': 'css', '.ts': 'ts', '.tsx': 'tsx' },
     minify: production,
     outdir,
     target: ['es2020'],

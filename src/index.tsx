@@ -17,13 +17,18 @@
  * along with Cockpit; If not, see <http://www.gnu.org/licenses/>.
  */
 
-import "../vendor/cockpit-page.scss";
+import '../vendor/cockpit-page.scss';
+import 'cockpit-dark-theme'; // once per page to sync with shell theme
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Application } from './app.jsx';
-import './app.scss';
 
-document.addEventListener("DOMContentLoaded", () => {
-    createRoot(document.getElementById("app")).render(<Application />);
+import { Application } from './app/Application';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('app');
+    if (!container)
+        return;
+
+    createRoot(container).render(<Application />);
 });
