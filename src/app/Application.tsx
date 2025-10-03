@@ -20,13 +20,13 @@
 import React from 'react';
 import cockpit from 'cockpit';
 import {
+    Content,
     Page,
     PageSection,
-    PageSectionVariants,
+    PageSectionProps,
     Tab,
     TabTitleText,
     Tabs,
-    Content,
 } from '@patternfly/react-core';
 
 import { SensorTable } from '../components/SensorTable';
@@ -35,7 +35,8 @@ import { SensorCategory } from '../types/sensors';
 
 import '../app.scss';
 
-const _ = cockpit.gettext;
+const _: typeof cockpit.gettext = cockpit.gettext.bind(cockpit);
+const PAGE_SECTION_VARIANT: PageSectionProps['variant'] = 'light';
 
 type TabDefinition = {
     eventKey: number;
@@ -69,12 +70,20 @@ export const Application: React.FC = () => {
     const [activeKey, setActiveKey] = React.useState<number>(TABS[0].eventKey);
     const { data, isLoading, isMocked } = useSensors();
 
-    const handleTabSelect = (
-        _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
-        eventKey: number | string,
-    ) => {
-        setActiveKey(typeof eventKey === 'number' ? eventKey : Number(eventKey));
-    };
+    const handleTabSelect = React.useCallback<NonNullable<React.ComponentProps<typeof Tabs>['onSelect']>>(
+        (_event, eventKey) => {
+            if (typeof eventKey === 'number') {
+                setActiveKey(eventKey);
+                return;
+            }
+
+            const parsedKey = Number.parseInt(eventKey, 10);
+            if (!Number.isNaN(parsedKey)) {
+                setActiveKey(parsedKey);
+            }
+        },
+        [setActiveKey]
+    );
 
     const getGroupsForCategory = React.useCallback(
         (category: SensorCategory) => {
@@ -96,7 +105,7 @@ export const Application: React.FC = () => {
 
     return (
         <Page>
-            <PageSection variant={PageSectionVariants.light} isFilled>
+            <PageSection variant={PAGE_SECTION_VARIANT} isFilled>
                 <Tabs
                     activeKey={activeKey}
                     onSelect={handleTabSelect}

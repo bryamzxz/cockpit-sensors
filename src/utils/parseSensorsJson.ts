@@ -42,7 +42,7 @@ const parseCategory = (value: unknown): SensorCategory => {
     }
 };
 
-const parseReading = (raw: unknown, fallbackLabel: string, index: number): Reading | null => {
+const parseReading = (raw: unknown, fallbackLabel: string): Reading | null => {
     if (!isRecord(raw)) {
         return null;
     }
@@ -98,8 +98,8 @@ const parseGroup = (raw: unknown, index: number): SensorChipGroup | null => {
     const rawReadings = Array.isArray(raw.readings) ? raw.readings : Array.isArray(raw.values) ? raw.values : [];
 
     const readings = rawReadings
-        .map((reading, readingIndex) => parseReading(reading, `${label} ${readingIndex + 1}`, readingIndex))
-        .filter((reading): reading is Reading => reading !== null);
+            .map((reading, readingIndex) => parseReading(reading, `${label} ${readingIndex + 1}`))
+            .filter((reading): reading is Reading => reading !== null);
 
     if (readings.length === 0) {
         return null;
@@ -136,8 +136,8 @@ export const parseSensorsJson = (raw: unknown): SensorData => {
                 : [];
 
     const groups = rawGroups
-        .map((group, index) => parseGroup(group, index))
-        .filter((group): group is SensorChipGroup => group !== null);
+            .map((group, index) => parseGroup(group, index))
+            .filter((group): group is SensorChipGroup => group !== null);
 
     const timestamp = coerceNumber(container.timestamp ?? container.updated ?? container.time);
 

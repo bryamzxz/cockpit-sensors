@@ -3,7 +3,7 @@ import cockpit from 'cockpit';
 
 import { Reading, SensorChipGroup } from '../types/sensors';
 
-const _ = cockpit.gettext;
+const _: typeof cockpit.gettext = cockpit.gettext.bind(cockpit);
 
 export interface SensorTableProps {
     groups: SensorChipGroup[];
