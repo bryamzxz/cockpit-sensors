@@ -247,7 +247,8 @@ const context = await esbuild.context({
 
 try {
     await context.rebuild();
-} catch (e) {
+} catch (error) {
+    console.error('Initial build failed:', error);
     if (!args.watch)
         process.exit(1);
 }
@@ -259,7 +260,9 @@ if (args.watch) {
 
         try {
             await context.rebuild();
-        } catch (e) {}
+        } catch (error) {
+            console.error('Rebuild failed:', error);
+        }
     };
 
     watch_dirs('src', on_change);
