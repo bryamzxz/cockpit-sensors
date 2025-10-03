@@ -31,8 +31,8 @@ async function listPoFiles(poDirectory) {
     try {
         const entries = await fs.readdir(poDirectory, { withFileTypes: true });
         return entries
-            .filter(entry => entry.isFile() && entry.name.endsWith('.po'))
-            .map(entry => path.join(poDirectory, entry.name));
+                .filter(entry => entry.isFile() && entry.name.endsWith('.po'))
+                .map(entry => path.join(poDirectory, entry.name));
     } catch (error) {
         if ((error instanceof Error) && 'code' in error && error.code === 'ENOENT')
             return [];
@@ -44,9 +44,9 @@ async function listPoFiles(poDirectory) {
 async function readPoFile(filePath) {
     const rawContents = await fs.readFile(filePath, 'utf8');
     const sanitized = rawContents
-        .split('\n')
-        .filter(line => !line.startsWith('#~'))
-        .join('\n');
+            .split('\n')
+            .filter(line => !line.startsWith('#~'))
+            .join('\n');
 
     const parsed = gettextParser.po.parse(sanitized, { defaultCharset: 'utf8', validation: true });
     delete parsed.translations[''][''];
