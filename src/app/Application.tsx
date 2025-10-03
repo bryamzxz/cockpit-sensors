@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import cockpit from 'cockpit';
 import {
     Page,
     PageSection,
@@ -31,6 +32,8 @@ import {
 
 import '../app.scss';
 
+const _ = cockpit.gettext;
+
 type TabDefinition = {
     eventKey: number;
     title: string;
@@ -40,18 +43,18 @@ type TabDefinition = {
 const TABS: readonly TabDefinition[] = [
     {
         eventKey: 0,
-        title: 'Temperaturas',
-        description: 'Visualiza y compara los sensores de temperatura reportados por el sistema.',
+        title: _('Temperatures'),
+        description: _('View and compare the temperature sensors reported by the system.'),
     },
     {
         eventKey: 1,
-        title: 'Ventiladores',
-        description: 'Supervisa el estado de los ventiladores instalados sin necesidad de recargar la página.',
+        title: _('Fans'),
+        description: _('Monitor the status of installed fans without reloading the page.'),
     },
     {
         eventKey: 2,
-        title: 'Voltajes',
-        description: 'Consulta las lecturas de voltaje disponibles para las fuentes de alimentación y buses.',
+        title: _('Voltages'),
+        description: _('Review available voltage readings for power supplies and system buses.'),
     },
 ];
 
@@ -71,7 +74,7 @@ export const Application: React.FC = () => {
                 <Tabs
                     activeKey={activeKey}
                     onSelect={handleTabSelect}
-                    aria-label="Listado de categorías de sensores"
+                    aria-label={_('Sensor category list')}
                     role="region"
                 >
                     {TABS.map(tab => (
