@@ -13,7 +13,7 @@
     "build": "node ./build.js",
     "dev": "node ./build.js --watch",
     "lint": "eslint .",
-    "test": "vitest run --coverage --passWithNoTests",
+    "test": "vitest run --coverage",
     "test:watch": "vitest watch"
   },
   "devDependencies": {
