@@ -2,6 +2,14 @@ import React from 'react';
 import { EMPTY_SENSOR_DATA, SensorCategory, SensorData } from '../types/sensors';
 import { parseSensorsJson } from '../utils/parseSensorsJson';
 
+declare global {
+    interface ImportMeta {
+        readonly env?: {
+            readonly VITE_MOCK?: unknown;
+        };
+    }
+}
+
 const MOCK_REFRESH_INTERVAL_MS = 5000;
 
 interface UseSensorsResult {
@@ -75,32 +83,18 @@ const buildMockPayload = (step: number) => ({
     })),
 });
 
-const readImportMetaEnv = (): unknown => {
-    try {
-        // eslint-disable-next-line no-new-func
-        const getter = new Function(
-            'return typeof import.meta !== "undefined" ? import.meta : undefined;',
-        );
-        const meta = getter();
-        if (meta && typeof meta === 'object' && 'env' in meta) {
-            return (meta as { env?: Record<string, unknown> }).env?.VITE_MOCK;
-        }
-    } catch (error) {
-        // Ignore environments where dynamic evaluation is blocked.
-    }
-
-    return undefined;
-};
-
 const readMockFlag = (): string | undefined => {
     const globalValue = (globalThis as Record<string, unknown>).VITE_MOCK;
     if (typeof globalValue === 'string' || typeof globalValue === 'number') {
         return String(globalValue);
     }
 
-    const fromImportMeta = readImportMetaEnv();
-    if (typeof fromImportMeta === 'string' || typeof fromImportMeta === 'number') {
-        return String(fromImportMeta);
+    const importMetaEnv = import.meta.env;
+    if (importMetaEnv && typeof importMetaEnv === 'object') {
+        const fromImportMeta = (importMetaEnv as { VITE_MOCK?: unknown }).VITE_MOCK;
+        if (typeof fromImportMeta === 'string' || typeof fromImportMeta === 'number') {
+            return String(fromImportMeta);
+        }
     }
 
     return undefined;

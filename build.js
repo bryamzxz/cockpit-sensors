@@ -14,6 +14,7 @@ import { translationsPlugin } from './build-tools/translations.js';
 
 const production = process.env.NODE_ENV === 'production';
 const outdir = 'dist';
+const mockFlagValue = process.env.VITE_MOCK ?? '';
 
 const parser = new ArgumentParser();
 parser.add_argument('-w', '--watch', { action: 'store_true', help: 'Enable watch mode', default: process.env.ESBUILD_WATCH === 'true' });
@@ -112,13 +113,23 @@ function watch_dirs(dir, on_change) {
     d.closeSync();
 }
 
+const mockFlagLiteral = JSON.stringify(mockFlagValue);
+const importMetaEnvGlobalRef = '__COCKPIT_SENSORS_IMPORT_META_ENV__';
+const banner = `(() => {\n    const value = ${mockFlagLiteral};\n    const env = { VITE_MOCK: value };\n    try {\n        if (typeof globalThis !== 'undefined') {\n            globalThis.VITE_MOCK = value;\n            globalThis.${importMetaEnvGlobalRef} = env;\n        }\n    } catch (error) {\n        /* noop: non-browser environments may block global access */\n    }\n})();`;
+
 const context = await esbuild.context({
     ...(!production ? { sourcemap: 'linked' } : {}),
     bundle: true,
     entryPoints: ['./src/index.tsx'],
     external: ['cockpit', 'cockpit-dark-theme', '*.woff', '*.woff2', '*.jpg', '*.svg', '../../assets*'],
+    define: {
+        'import.meta.env': `globalThis.${importMetaEnvGlobalRef}`,
+    },
     legalComments: 'external',
     loader: { '.js': 'jsx', '.scss': 'css', '.ts': 'ts', '.tsx': 'tsx' },
+    banner: {
+        js: banner,
+    },
     minify: production,
     outdir,
     target: ['es2020'],
