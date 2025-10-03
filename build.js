@@ -10,6 +10,7 @@ import * as sass from 'sass';
 import { ArgumentParser } from 'argparse';
 
 import { cleanup } from './build-tools/cleanup.js';
+import { translationsPlugin } from './build-tools/translations.js';
 
 const production = process.env.NODE_ENV === 'production';
 const outdir = 'dist';
@@ -239,6 +240,7 @@ const context = await esbuild.context({
                 { from: 'src/index.html', to: 'index.html' },
             ],
         }),
+        translationsPlugin(),
         notifyEndPlugin(),
     ],
 });
