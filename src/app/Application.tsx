@@ -110,7 +110,7 @@ export const Application: React.FC = () => {
                 >
                     {TABS.map(tab => (
                         <Tab key={tab.eventKey} eventKey={tab.eventKey} title={<TabTitleText>{tab.title}</TabTitleText>}>
-                            <Content>
+                            <Content className="sensor-description">
                                 <h2>{tab.title}</h2>
                                 <p>{tab.description}</p>
                                 {!isMocked && !isLoading && (
