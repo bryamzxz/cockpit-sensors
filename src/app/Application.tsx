@@ -32,6 +32,7 @@ import {
 import { SensorTable } from '../components/SensorTable';
 import { useSensors } from '../hooks/useSensors';
 import { SensorCategory } from '../types/sensors';
+import { groupsForCategory } from '../utils/grouping';
 
 import '../app.scss';
 
@@ -64,6 +65,14 @@ const TABS: readonly TabDefinition[] = [
         description: _('Review available voltage readings for power supplies and system buses.'),
         category: 'voltage',
     },
+    {
+        eventKey: 3,
+        title: _('Other sensors'),
+        description: _(
+            'Access readings for sensors that are not recognised as temperature, fan, or voltage devices.'
+        ),
+        category: 'unknown',
+    },
 ];
 
 export const Application: React.FC = () => {
@@ -86,20 +95,7 @@ export const Application: React.FC = () => {
     );
 
     const getGroupsForCategory = React.useCallback(
-        (category: SensorCategory) => {
-            const inCategory = data.groups.filter(group => group.category === category);
-            const uncategorised = data.groups.filter(group => group.category === 'unknown');
-
-            if (inCategory.length === 0) {
-                if (uncategorised.length > 0 && uncategorised.length === data.groups.length) {
-                    return uncategorised;
-                }
-
-                return [];
-            }
-
-            return uncategorised.length > 0 ? [...inCategory, ...uncategorised] : inCategory;
-        },
+        (category: SensorCategory) => groupsForCategory(data.groups, category),
         [data.groups],
     );
 
