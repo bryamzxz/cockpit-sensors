@@ -66,6 +66,16 @@ const BASE_MOCK_GROUPS: MockGroup[] = [
             { label: '+5V', input: 5.02, min: 4.8, max: 5.2, unit: 'V' },
         ],
     },
+    {
+        id: 'chip-unknown-0',
+        name: 'nct6796d-isa-0290-other',
+        label: 'Auxiliary sensors',
+        category: 'unknown',
+        readings: [
+            { label: 'Intrusion detect', input: 0, unit: 'state' },
+            { label: 'VRM temperature', input: 42.1, unit: '°C' },
+        ],
+    },
 ];
 
 const buildMockPayload = (step: number) => ({
