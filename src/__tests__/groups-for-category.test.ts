@@ -33,4 +33,17 @@ describe('groupsForCategory', () => {
         expect(groupsForCategory(groups, 'temperature')).toEqual([]);
         expect(groupsForCategory(groups, 'unknown')).toEqual(groups);
     });
+
+    it('includes power groups in the fallback tab', () => {
+        const groups: SensorChipGroup[] = [
+            buildGroup('power-1', 'power'),
+            buildGroup('unknown-1', 'unknown'),
+            buildGroup('temp-1', 'temperature'),
+        ];
+
+        expect(groupsForCategory(groups, 'unknown')).toEqual([
+            buildGroup('power-1', 'power'),
+            buildGroup('unknown-1', 'unknown'),
+        ]);
+    });
 });
