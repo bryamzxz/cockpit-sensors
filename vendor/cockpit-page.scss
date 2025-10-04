@@ -19,4 +19,4 @@
 
 @use "@patternfly/patternfly/base";
 
-@import "./patternfly-5-overrides.scss";
+@use "./patternfly-5-overrides" as *;
