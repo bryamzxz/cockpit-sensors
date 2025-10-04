@@ -174,6 +174,7 @@ if (args.watch) {
 
     watch_dirs('src', on_change);
     watch_dirs('vendor', on_change);
+    watch_dirs('po', on_change);
 
     await new Promise(() => {});
 }
