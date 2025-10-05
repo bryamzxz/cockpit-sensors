@@ -9,19 +9,37 @@ import { useSensors } from '../hooks/useSensors';
 vi.mock('@patternfly/react-core', async () => {
     const React = await import('react');
 
-    const createComponent = (tag: keyof JSX.IntrinsicElements = 'div') =>
-        ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
-            React.createElement(tag, props, children);
+    const createComponent = (tag: keyof JSX.IntrinsicElements = 'div') => {
+        const Component = function MockComponent({
+            children,
+            ...props
+        }: React.PropsWithChildren<Record<string, unknown>>) {
+            return React.createElement(tag, props, children);
+        };
+
+        const normalizedTag = typeof tag === 'string' ? tag : 'Component';
+        Component.displayName = `Mock${normalizedTag.charAt(0).toUpperCase()}${normalizedTag.slice(1)}`;
+
+        return Component;
+    };
+
+    const createFragmentComponent = (displayName: string) => {
+        const Component = function MockFragment({ children }: React.PropsWithChildren<unknown>) {
+            return React.createElement(React.Fragment, null, children);
+        };
+
+        Component.displayName = displayName;
+
+        return Component;
+    };
 
     return {
         Content: createComponent('section'),
         Page: createComponent('main'),
         PageSection: createComponent('section'),
-        Tab: ({ children }: React.PropsWithChildren<unknown>) => React.createElement(React.Fragment, null, children),
-        TabTitleText: ({ children }: React.PropsWithChildren<unknown>) =>
-            React.createElement(React.Fragment, null, children),
-        Tabs: ({ children }: React.PropsWithChildren<unknown>) =>
-            React.createElement(React.Fragment, null, children),
+        Tab: createFragmentComponent('MockTab'),
+        TabTitleText: createFragmentComponent('MockTabTitleText'),
+        Tabs: createFragmentComponent('MockTabs'),
     };
 });
 
