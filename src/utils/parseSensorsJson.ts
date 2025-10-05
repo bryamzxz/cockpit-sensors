@@ -142,10 +142,12 @@ export const parseSensorsJson = (raw: unknown): SensorData => {
     const timestamp = coerceNumber(container.timestamp ?? container.updated ?? container.time);
 
     if (groups.length === 0) {
-        return timestamp ? { groups: [], timestamp } : { ...EMPTY_SENSOR_DATA };
+        return typeof timestamp === 'number'
+            ? { groups: [], timestamp }
+            : { ...EMPTY_SENSOR_DATA };
     }
 
-    return timestamp ? { groups, timestamp } : { groups };
+    return typeof timestamp === 'number' ? { groups, timestamp } : { groups };
 };
 
 export type { Reading, SensorChipGroup, SensorData };
