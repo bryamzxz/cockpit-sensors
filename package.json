@@ -34,6 +34,7 @@
     "gettext-parser": "^8.0.0",
     "globals": "^15.11.0",
     "jed": "^1.1.1",
+    "jsdom": "^25.0.1",
     "sass": "^1.93.2",
     "stylelint": "16.2.1",
     "stylelint-config-standard": "36.0.0",
