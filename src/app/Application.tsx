@@ -113,7 +113,7 @@ export const Application: React.FC = () => {
                             <Content className="sensor-description">
                                 <h2>{tab.title}</h2>
                                 <p>{tab.description}</p>
-                                {!isMocked && !isLoading && (
+                                {!isMocked && !isLoading && data.groups.length === 0 && (
                                     <small>
                                         {_('Live sensor data will appear once the service integration is enabled.')}
                                     </small>
