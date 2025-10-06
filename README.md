@@ -46,6 +46,20 @@ rebuilding when files change.
   `python -m http.server --directory dist`) if you need to preview the module
   in a browser outside of Cockpit.
 
+### Automatic Cockpit library detection
+
+The build tooling automatically configures the Sass include path, so you no
+longer need to export `SASS_PATH` manually. When `npm run build` or
+`npm run dev` run, the helper checks the following locations in order and adds
+the directories that exist to the Sass loader and `SASS_PATH`:
+
+1. `process.env.COCKPIT_DIR`
+2. `../cockpit/pkg/lib` (a sibling checkout of the Cockpit repository)
+3. `pkg/lib` (the local Cockpit mirror within this repository)
+
+You can still override the include path by exporting `SASS_PATH` before running
+the scripts, in which case the tooling leaves your custom value untouched.
+
 ### Mock data with `VITE_MOCK`
 
 When developing without a running Cockpit backend you can ask the application to

@@ -11,6 +11,7 @@ import { ArgumentParser } from 'argparse';
 
 import { cleanup } from './build-tools/cleanup.js';
 import { translationsPlugin } from './build-tools/translations.js';
+import { resolveCockpitLibraryPaths } from './build-tools/sass-path.js';
 
 const production = process.env.NODE_ENV === 'production';
 const outdir = 'dist';
@@ -58,15 +59,17 @@ function staticAssetsPlugin({ outdir: assetsOutdir, assets }) {
     };
 }
 
-function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded' } = {}) {
+function sassLoaderPlugin({ loadPaths = [], sourceMap = false, style = 'expanded', cockpitLibPaths = [] } = {}) {
     return {
         name: 'sass-loader',
         setup(build) {
             build.onLoad({ filter: /\.scss$/ }, async args => {
-                const resolvedLoadPaths = [
+                const dynamicCockpitPaths = cockpitLibPaths.length > 0 ? cockpitLibPaths : resolveCockpitLibraryPaths();
+                const resolvedLoadPaths = Array.from(new Set([
                     path.dirname(args.path),
                     ...loadPaths.map(loadPath => path.isAbsolute(loadPath) ? loadPath : path.resolve(loadPath)),
-                ];
+                    ...dynamicCockpitPaths.map(loadPath => path.isAbsolute(loadPath) ? loadPath : path.resolve(loadPath)),
+                ]));
 
                 const result = await sass.compileAsync(args.path, {
                     loadPaths: resolvedLoadPaths,
@@ -117,6 +120,8 @@ const mockFlagLiteral = JSON.stringify(mockFlagValue);
 const importMetaEnvGlobalRef = '__COCKPIT_SENSORS_IMPORT_META_ENV__';
 const banner = `(() => {\n    const value = ${mockFlagLiteral};\n    const env = { VITE_MOCK: value };\n    try {\n        if (typeof globalThis !== 'undefined') {\n            globalThis.VITE_MOCK = value;\n            globalThis.${importMetaEnvGlobalRef} = env;\n        }\n    } catch (error) {\n        /* noop: non-browser environments may block global access */\n    }\n})();`;
 
+const cockpitLibPaths = resolveCockpitLibraryPaths();
+
 const context = await esbuild.context({
     ...(!production ? { sourcemap: 'linked' } : {}),
     bundle: true,
@@ -136,7 +141,8 @@ const context = await esbuild.context({
     plugins: [
         cleanup({ path: outdir }),
         sassLoaderPlugin({
-            loadPaths: ['pkg/lib', 'pkg/lib/node_modules', 'node_modules'],
+            loadPaths: ['pkg/lib/node_modules', 'node_modules'],
+            cockpitLibPaths,
             sourceMap: !production,
             style: production ? 'compressed' : 'expanded',
         }),
