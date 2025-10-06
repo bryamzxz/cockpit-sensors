@@ -16,7 +16,7 @@ if (typeof window !== 'undefined') {
         const cockpitRequire = window.require;
         if (typeof cockpitRequire === 'function')
             cockpitRequire('cockpit-dark-theme');
-    } catch (error) {
+    } catch {
         // Swallow errors when Cockpit's loader is not present.
     }
 }
