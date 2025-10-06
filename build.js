@@ -120,7 +120,9 @@ function watch_dirs(dir, on_change) {
 
 const mockFlagLiteral = JSON.stringify(mockFlagValue);
 const importMetaEnvGlobalRef = '__COCKPIT_SENSORS_IMPORT_META_ENV__';
-const banner = `(() => {\n    const value = ${mockFlagLiteral};\n    const env = { VITE_MOCK: value };\n    try {\n        if (typeof globalThis !== 'undefined') {\n            globalThis.VITE_MOCK = value;\n            globalThis.${importMetaEnvGlobalRef} = env;\n        }\n    } catch (error) {\n        /* noop: non-browser environments may block global access */\n    }\n})();`;
+const requireShim = `var require = (typeof window !== 'undefined' && window.require) ? window.require : (typeof globalThis !== 'undefined' && globalThis.require ? globalThis.require : undefined);`;
+const envBootstrap = `(() => {\n    const value = ${mockFlagLiteral};\n    const env = { VITE_MOCK: value };\n    try {\n        if (typeof globalThis !== 'undefined') {\n            globalThis.VITE_MOCK = value;\n            globalThis.${importMetaEnvGlobalRef} = env;\n        }\n    } catch (error) {\n        /* noop: non-browser environments may block global access */\n    }\n})();`;
+const banner = `${requireShim}\n${envBootstrap}`;
 
 const cockpitLibPaths = resolveCockpitLibraryPaths();
 
