@@ -13,14 +13,16 @@ be installed on any host running Cockpit and builds through a custom
 - Optional but recommended: `make`, `gettext` and a working Cockpit instance for
   integration tests.
 
-Install dependencies once per clone with:
+Bootstrap a working copy with the provided script, which clones Cockpit (or
+reuses `COCKPIT_DIR`), links the shared `pkg/` directory, installs dependencies
+and performs an initial build:
 
 ```bash
-npm ci
+./scripts/setup.sh
 ```
 
-> ℹ️ `npm ci` removes existing `node_modules/` and reproduces the lockfile state
-> exactly, which keeps the development environment deterministic.
+> ℹ️ The setup script prefers `npm ci` and falls back to `npm install && npm
+> dedupe` when the stricter command is not available.
 
 ## Development workflow
 
@@ -34,6 +36,19 @@ rebuilding when files change.
 | Build the production bundle | `npm run build`
 | Run the Vitest suite with coverage | `npm run test`
 | Run ESLint over the repository | `npm run lint`
+
+After pulling updates run the maintenance helper to refresh dependencies only
+when `package-lock.json` changed and rebuild the bundle:
+
+```bash
+./scripts/maint.sh
+```
+
+The script also fetches updates in the neighbouring Cockpit checkout (or the
+location provided through `COCKPIT_DIR`) and rewrites the `pkg/` symlink to
+point at the latest sources. Continuous integration jobs can run
+`./scripts/setup.sh` for a clean install and `./scripts/maint.sh` for
+incremental builds without repeating expensive dependency work.
 
 ### Building and watching
 
