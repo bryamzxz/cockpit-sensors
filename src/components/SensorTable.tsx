@@ -1,5 +1,4 @@
 import React from 'react';
-import cockpit from 'cockpit';
 
 import { Reading, SensorChipGroup } from '../types/sensors';
 

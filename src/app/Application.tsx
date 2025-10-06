@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import cockpit from 'cockpit';
 import {
     Content,
     Page,
