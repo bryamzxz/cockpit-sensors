@@ -1,8 +1,11 @@
-declare module 'cockpit' {
-    interface Cockpit {
-        gettext(message: string): string;
-    }
+export type CockpitGettext = (message: string) => string;
 
-    const cockpit: Cockpit;
-    export default cockpit;
+export interface Cockpit {
+    gettext: CockpitGettext;
 }
+
+declare global {
+    const cockpit: Cockpit;
+}
+
+export {};
