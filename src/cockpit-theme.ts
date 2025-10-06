@@ -5,19 +5,33 @@
  * errors in that environment.
  */
 
+type CockpitRequire = {
+    (moduleId: string): unknown;
+    (deps: string[], onSuccess?: (...args: unknown[]) => void, onError?: (err: unknown) => void): void;
+    amd?: unknown;
+};
+
 declare global {
     interface Window {
-        require?: (moduleId: string) => unknown;
+        require?: CockpitRequire;
     }
 }
 
 if (typeof window !== 'undefined') {
-    try {
-        const cockpitRequire = window.require;
-        if (typeof cockpitRequire === 'function')
-            cockpitRequire('cockpit-dark-theme');
-    } catch {
-        // Swallow errors when Cockpit's loader is not present.
+    const cockpitRequire = window.require;
+
+    if (typeof cockpitRequire === 'function') {
+        if (typeof cockpitRequire.amd === 'object') {
+            // Request the theme module via AMD so the loader fetches it when
+            // it has not been preloaded by the host shell.
+            cockpitRequire(['cockpit-dark-theme'], undefined, () => undefined);
+        } else {
+            try {
+                cockpitRequire('cockpit-dark-theme');
+            } catch {
+                // Swallow errors when Cockpit's loader is not present.
+            }
+        }
     }
 }
 
