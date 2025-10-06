@@ -1,4 +1,6 @@
-export const getCockpit = (): Cockpit => {
+import type { Cockpit, CockpitGettext } from '../types/cockpit';
+
+const resolveCockpit = (): Cockpit => {
     if (typeof cockpit === 'undefined') {
         throw new ReferenceError('cockpit is not defined');
     }
@@ -6,9 +8,8 @@ export const getCockpit = (): Cockpit => {
     return cockpit;
 };
 
-type CockpitGettext = Cockpit['gettext'];
-
-export const gettext: CockpitGettext = ((message: Parameters<CockpitGettext>[0]) =>
-    getCockpit().gettext(message)) as CockpitGettext;
+export const gettext: CockpitGettext = message => resolveCockpit().gettext(message);
 
 export const _: CockpitGettext = gettext;
+
+export const getCockpit = resolveCockpit;
