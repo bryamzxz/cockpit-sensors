@@ -32,10 +32,10 @@ import { SensorTable } from '../components/SensorTable';
 import { useSensors } from '../hooks/useSensors';
 import { SensorCategory } from '../types/sensors';
 import { groupsForCategory } from '../utils/grouping';
+import { _ } from '../utils/cockpit';
 
 import '../app.scss';
 
-const _: typeof cockpit.gettext = cockpit.gettext.bind(cockpit);
 const PAGE_SECTION_VARIANT: PageSectionProps['variant'] = 'light';
 
 type TabDefinition = {

@@ -1,8 +1,7 @@
 import React from 'react';
 
 import { Reading, SensorChipGroup } from '../types/sensors';
-
-const _: typeof cockpit.gettext = cockpit.gettext.bind(cockpit);
+import { _ } from '../utils/cockpit';
 
 export interface SensorTableProps {
     groups: SensorChipGroup[];
