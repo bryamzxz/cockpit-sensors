@@ -10,8 +10,8 @@
     "node": ">= 18.18"
   },
   "scripts": {
-    "build": "node -r ./build-tools/sass-path.js ./build.js",
-    "dev": "node -r ./build-tools/sass-path.js ./build.js --watch",
+    "build": "node ./build.js",
+    "dev": "node ./build.js --watch",
     "lint": "eslint .",
     "test": "vitest run --coverage",
     "test:watch": "vitest watch"

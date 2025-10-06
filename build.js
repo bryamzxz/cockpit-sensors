@@ -11,7 +11,9 @@ import { ArgumentParser } from 'argparse';
 
 import { cleanup } from './build-tools/cleanup.js';
 import { translationsPlugin } from './build-tools/translations.js';
-import { resolveCockpitLibraryPaths } from './build-tools/sass-path.js';
+import { ensureSassPath, resolveCockpitLibraryPaths } from './build-tools/sass-path.js';
+
+ensureSassPath();
 
 const production = process.env.NODE_ENV === 'production';
 const outdir = 'dist';
