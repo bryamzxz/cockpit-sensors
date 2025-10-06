@@ -17,8 +17,8 @@
  * along with Cockpit; If not, see <http://www.gnu.org/licenses/>.
  */
 
+import './cockpit-theme';
 import '../vendor/cockpit-page.scss';
-import 'cockpit-dark-theme'; // once per page to sync with shell theme
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
