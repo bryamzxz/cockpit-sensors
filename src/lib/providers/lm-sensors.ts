@@ -225,7 +225,7 @@ export const normalizeLmSensors = (payload: unknown): SensorSample[] => {
             }
 
             if (sensorKey.endsWith(INPUT_SUFFIX)) {
-                const featureRecord = chipValue as Record<string, unknown>;
+                const featureRecord = chipValue;
                 const sample = buildSample(chipId, chipLabel, chipId, sensorKey, sensorValue, featureRecord);
                 if (sample) {
                     samples.push(sample);
