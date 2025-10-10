@@ -3,7 +3,7 @@ import type { Sample } from '../lib/history';
 export interface HistorySeries {
     key: string;
     label: string;
-    history: Sample[];
+    samples: Sample[];
 }
 
 const escapeCell = (value: string): string => {
@@ -15,8 +15,8 @@ const escapeCell = (value: string): string => {
 };
 
 export const buildHistoryCsv = (series: HistorySeries[]): string => {
-    const headers = ['ts', ...series.map(item => escapeCell(item.label))];
-    const maxLength = Math.max(0, ...series.map(item => item.history.length));
+    const headers = ['timestamp', ...series.map(item => escapeCell(item.label))];
+    const maxLength = Math.max(0, ...series.map(item => item.samples.length));
 
     const rows: string[] = [headers.join(',')];
 
@@ -25,7 +25,7 @@ export const buildHistoryCsv = (series: HistorySeries[]): string => {
         const values: string[] = [];
 
         for (const item of series) {
-            const sample = item.history[index];
+            const sample = item.samples[index];
             if (sample) {
                 if (!timestamp) {
                     timestamp = new Date(sample.t).toISOString();
