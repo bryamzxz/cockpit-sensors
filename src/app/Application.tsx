@@ -38,6 +38,7 @@ import {
 
 import { SensorTable } from '../components/SensorTable';
 import { useSensors } from '../hooks/useSensors';
+import { useSensorPreferences } from '../hooks/useSensorPreferences';
 import { SensorCategory } from '../types/sensors';
 import { groupsForCategory } from '../utils/grouping';
 import { _ } from '../utils/cockpit';
@@ -84,7 +85,8 @@ const TABS: readonly TabDefinition[] = [
 
 export const Application: React.FC = () => {
     const [activeKey, setActiveKey] = React.useState<number>(TABS[0].eventKey);
-    const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors();
+    const { unit, setUnit, refreshMs, setRefreshMs, pinned, togglePinned } = useSensorPreferences();
+    const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors(refreshMs);
 
     const handleTabSelect = React.useCallback<NonNullable<React.ComponentProps<typeof Tabs>['onSelect']>>(
         (_event, eventKey) => {
@@ -175,7 +177,7 @@ export const Application: React.FC = () => {
 
     return (
         <Page>
-            <PageSection variant={PAGE_SECTION_VARIANT} isFilled>
+            <PageSection variant={PAGE_SECTION_VARIANT} isFilled isWidthLimited={false}>
                 <div className="sensor-banner">{renderBanner()}</div>
                 <Tabs
                     activeKey={activeKey}
@@ -208,7 +210,18 @@ export const Application: React.FC = () => {
                                         <span>{_('Loading sensor data...')}</span>
                                     </div>
                                 )}
-                                {!isLoading && <SensorTable groups={getGroupsForCategory(tab.category)} />}
+                                {!isLoading && (
+                                    <SensorTable
+                                        category={tab.category}
+                                        groups={getGroupsForCategory(tab.category)}
+                                        unit={unit}
+                                        onUnitChange={setUnit}
+                                        refreshMs={refreshMs}
+                                        onRefreshChange={setRefreshMs}
+                                        pinnedKeys={pinned}
+                                        onTogglePinned={togglePinned}
+                                    />
+                                )}
                             </div>
                         </Tab>
                     ))}

@@ -111,3 +111,114 @@ msgstr "Datenquellen"
 #: src/app/Application.tsx
 msgid "(active)"
 msgstr "(aktiv)"
+#: src/components/SensorTable.tsx
+msgid "No temperature sensors detected"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Cockpit did not receive any temperature readings for this system."
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "No fan telemetry available"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "The hardware monitoring stack did not expose any fan speed sensors."
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "No voltage sensors reported"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "No voltage inputs were reported by the available sensor backends."
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "No power sensors found"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Power metrics were not exposed for this host or backend."
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "No miscellaneous sensors captured"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Sensors outside the dedicated categories are not reporting data."
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Sensor table controls"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Refresh interval"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Refresh interval selector"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Every 10 seconds"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Every 5 seconds"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Every 2 seconds"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Temperature unit"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Temperature unit selector"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Degrees Celsius (°C)"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Degrees Fahrenheit (°F)"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Download session history as CSV"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Export CSV"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Pinned status"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Pin sensor"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Unpin sensor"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Session min/avg/max"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Trend"
+msgstr ""
+
+#: src/components/SensorTable.tsx
+msgid "Source"
+msgstr ""

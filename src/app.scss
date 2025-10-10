@@ -30,6 +30,39 @@
     margin-top: var(--pf-global--spacer--lg);
 }
 
+.sensor-toolbar {
+    margin-bottom: var(--pf-global--spacer--md);
+}
+
+.sensor-toolbar__label {
+    display: block;
+    font-size: var(--pf-global--FontSize--sm);
+    color: var(--pf-global--palette--black-600);
+    margin-bottom: var(--pf-global--spacer--xs);
+}
+
+.sensor-reading {
+    font-variant-numeric: tabular-nums;
+}
+
+.sensor-reading--normal {
+    color: inherit;
+}
+
+.sensor-reading--warning {
+    color: var(--pf-global--warning-color--100);
+    font-weight: 600;
+}
+
+.sensor-reading--danger {
+    color: var(--pf-global--danger-color--100);
+    font-weight: 600;
+}
+
+.sensor-zero-state {
+    margin-top: var(--pf-global--spacer--xl);
+}
+
 .sensor-loading {
     display: inline-flex;
     align-items: center;

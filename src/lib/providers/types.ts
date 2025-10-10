@@ -33,6 +33,7 @@ export class ProviderError extends Error {
 
 export interface ProviderContext {
     onError?: (error: ProviderError) => void;
+    refreshIntervalMs?: number;
 }
 
 export interface Provider {
