@@ -1,6 +1,6 @@
 import type { SensorCategory } from '../../types/sensors';
 
-export type SensorKind = 'temp' | 'fan' | 'volt';
+export type SensorKind = 'temp' | 'fan' | 'volt' | 'other';
 
 export interface SensorSample {
     kind: SensorKind;
@@ -45,10 +45,12 @@ export const SENSOR_KIND_TO_CATEGORY: Record<SensorKind, SensorCategory> = {
     temp: 'temperature',
     fan: 'fan',
     volt: 'voltage',
+    other: 'unknown',
 };
 
-export const SENSOR_KIND_TO_UNIT: Record<SensorKind, string> = {
+export const SENSOR_KIND_TO_UNIT: Record<SensorKind, string | undefined> = {
     temp: '°C',
     fan: 'RPM',
     volt: 'V',
+    other: undefined,
 };
