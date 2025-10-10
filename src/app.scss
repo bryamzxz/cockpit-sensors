@@ -1,5 +1,23 @@
 @use "page";
 
+.sensor-page {
+    --pf-v6-c-page--section--m-width-limited--MaxWidth: none;
+}
+
+.pf-c-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.pf-c-table {
+    width: 100%;
+}
+
+.pf-c-table td,
+.pf-c-table th {
+    word-break: break-word;
+}
+
 .sensor-description p {
     font-weight: 600;
 }
@@ -31,6 +49,11 @@
 }
 
 .sensor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: var(--pf-global--ZIndex--md);
+    background: var(--pf-global--BackgroundColor--100);
+    padding-block: var(--pf-global--spacer--sm);
     margin-bottom: var(--pf-global--spacer--md);
 }
 

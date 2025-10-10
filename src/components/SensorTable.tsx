@@ -290,7 +290,11 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
     return (
         <div className="sensor-table" data-component="sensor-table">
-            <Toolbar className="sensor-toolbar" role="region" aria-label={_('Sensor table controls')}>
+            <Toolbar
+                className="sensor-toolbar"
+                role="region"
+                aria-label={_('Sensor table controls')}
+            >
                 <ToolbarContent>
                     <ToolbarGroup>
                         <ToolbarItem>

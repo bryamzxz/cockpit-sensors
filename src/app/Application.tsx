@@ -177,7 +177,12 @@ export const Application: React.FC = () => {
 
     return (
         <Page>
-            <PageSection variant={PAGE_SECTION_VARIANT} isFilled isWidthLimited={false}>
+            <PageSection
+                variant={PAGE_SECTION_VARIANT}
+                isFilled
+                isWidthLimited={false}
+                className="sensor-page"
+            >
                 <div className="sensor-banner">{renderBanner()}</div>
                 <Tabs
                     activeKey={activeKey}
