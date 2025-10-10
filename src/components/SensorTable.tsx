@@ -180,7 +180,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     }
                     return collator.compare(a.readingLabel, b.readingLabel);
                 });
-    }, [rows, pinnedKeys, pinnedIndex, historyVersion]);
+    }, [rows, pinnedKeys, pinnedIndex]);
 
     React.useEffect(() => {
         const history = historyRef.current;
@@ -267,7 +267,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         anchor.click();
         document.body.removeChild(anchor);
         URL.revokeObjectURL(url);
-    }, [sortedRows, unit, historyVersion]);
+    }, [sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
         (nextUnit: TemperatureUnit) => {
@@ -277,6 +277,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     );
 
     const exportDisabled = React.useMemo(() => {
+        void historyVersion;
         const history = historyRef.current;
         for (const row of sortedRows) {
             if ((history.get(row.key) ?? []).length > 0) {

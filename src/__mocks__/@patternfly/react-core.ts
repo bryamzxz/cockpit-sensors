@@ -10,7 +10,9 @@ const createElement = (tag: keyof JSX.IntrinsicElements) =>
     };
 
 export const Alert = ({ title, children, ...props }: React.PropsWithChildren<{ title?: React.ReactNode } & AnyProps>) => {
-    const { variant: _variant, isInline: _isInline, ...rest } = props;
+    const { variant, isInline, ...rest } = props;
+    void variant;
+    void isInline;
     return React.createElement('section', rest, title, children);
 };
 
@@ -20,16 +22,22 @@ export const Button = ({ children, isDisabled, ...props }: ComponentProps & { is
     React.createElement('button', { ...props, disabled: isDisabled }, children);
 export const ClipboardCopy = ({ children }: ComponentProps) => React.createElement('pre', null, children);
 export const Content = createElement('section');
-export const Label = ({ children, isCompact: _isCompact, ...props }: ComponentProps & { isCompact?: boolean }) =>
-    React.createElement('span', props, children);
-export const LabelGroup = ({
-    children,
-    categoryName: _categoryName,
-    ...props
-}: ComponentProps & { categoryName?: React.ReactNode }) => React.createElement('div', props, children);
+export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean }) => {
+    const { isCompact, ...rest } = props;
+    void isCompact;
+    return React.createElement('span', rest, children);
+};
+export const LabelGroup = ({ children, ...props }: ComponentProps & { categoryName?: React.ReactNode }) => {
+    const { categoryName, ...rest } = props;
+    void categoryName;
+    return React.createElement('div', rest, children);
+};
 export const Page = createElement('main');
 export const PageSection = ({ children, ...props }: ComponentProps) => {
-    const { variant: _variant, isFilled: _isFilled, isWidthLimited: _isWidthLimited, ...rest } = props;
+    const { variant, isFilled, isWidthLimited, ...rest } = props;
+    void variant;
+    void isFilled;
+    void isWidthLimited;
     return React.createElement('section', rest, children);
 };
 export const Spinner = createElement('div');
@@ -39,11 +47,17 @@ export const Tabs = ({ children }: ComponentProps) => React.createElement(React.
 
 export const EmptyState = ({ children }: ComponentProps) => React.createElement('div', null, children);
 export const EmptyStateBody = ({ children }: ComponentProps) => React.createElement('p', null, children);
-export const EmptyStateHeader = ({ icon, titleText, headingLevel = 'h2' }: { icon?: React.ReactNode; titleText?: React.ReactNode; headingLevel?: string }) =>
-    React.createElement(headingLevel as keyof JSX.IntrinsicElements, null, icon, titleText);
+type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+export const EmptyStateHeader = ({
+    icon,
+    titleText,
+    headingLevel = 'h2',
+}: { icon?: React.ReactNode; titleText?: React.ReactNode; headingLevel?: HeadingLevel }) =>
+    React.createElement(headingLevel, null, icon, titleText);
 export const EmptyStateIcon = ({ icon }: { icon?: React.ElementType }) => {
-    const Icon = icon ?? 'span';
-    return React.createElement(Icon as React.ElementType, null);
+    const IconComponent: React.ElementType = icon ?? 'span';
+    return React.createElement(IconComponent, null);
 };
 
 export const Toolbar = createElement('div');

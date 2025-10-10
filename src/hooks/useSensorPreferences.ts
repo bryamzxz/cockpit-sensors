@@ -47,7 +47,7 @@ const readPinned = (value: string | null): string[] => {
     }
 
     try {
-        const parsed = JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
         if (Array.isArray(parsed)) {
             return parsed.filter(entry => typeof entry === 'string');
         }

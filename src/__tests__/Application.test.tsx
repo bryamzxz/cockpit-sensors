@@ -3,9 +3,9 @@ import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-    useSensors: vi.fn(),
-}));
+import type { UseSensorsResult } from '../hooks/useSensors';
+
+const useSensorsMock = vi.fn<(refreshMs?: number) => UseSensorsResult>();
 
 vi.mock('@patternfly/react-core', async () => await import('../__mocks__/@patternfly/react-core'));
 vi.mock('@patternfly/react-icons', async () => await import('../__mocks__/@patternfly/react-icons'));
@@ -27,7 +27,7 @@ vi.mock('../hooks/useSensorPreferences', () => ({
     }),
 }));
 vi.mock('../hooks/useSensors', () => ({
-    useSensors: (...args: unknown[]) => mocks.useSensors(...args),
+    useSensors: (refreshMs?: number) => useSensorsMock(refreshMs),
 }));
 vi.mock(
     'cockpit',
@@ -47,7 +47,7 @@ describe('Application', () => {
     });
 
     beforeEach(() => {
-        mocks.useSensors.mockReset();
+        useSensorsMock.mockReset();
     });
 
     afterEach(() => {
@@ -55,7 +55,7 @@ describe('Application', () => {
     });
 
     it('renders the onboarding banner when no backends are available', () => {
-        mocks.useSensors.mockReturnValue({
+        useSensorsMock.mockReturnValue({
             data: { groups: [] },
             isLoading: false,
             status: 'no-sources',
@@ -67,12 +67,12 @@ describe('Application', () => {
 
         render(<Application />);
 
-        expect(mocks.useSensors).toHaveBeenCalledWith(5000);
+        expect(useSensorsMock).toHaveBeenCalledWith(5000);
         expect(screen.getByText('No sensor backends are available on this system')).toBeInTheDocument();
     });
 
     it('shows available providers when sensor groups are present', () => {
-        mocks.useSensors.mockReturnValue({
+        useSensorsMock.mockReturnValue({
             data: {
                 groups: [
                     {

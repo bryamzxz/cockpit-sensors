@@ -1,6 +1,10 @@
 import React from 'react';
 
-const createIcon = (name: string) => () => React.createElement('span', { "data-icon": name });
+const createIcon = (name: string) => {
+    const Icon = () => React.createElement('span', { 'data-icon': name });
+    Icon.displayName = name;
+    return Icon;
+};
 
 export const DownloadIcon = createIcon('DownloadIcon');
 export const OutlinedStarIcon = createIcon('OutlinedStarIcon');
