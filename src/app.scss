@@ -3,3 +3,42 @@
 .sensor-description p {
     font-weight: 600;
 }
+
+.sensor-banner {
+    margin-bottom: var(--pf-global--spacer--lg);
+}
+
+.sensor-banner__copy {
+    margin-top: var(--pf-global--spacer--md);
+    max-width: 48rem;
+}
+
+.sensor-banner__action {
+    margin-top: var(--pf-global--spacer--md);
+}
+
+.sensor-banner__hint {
+    margin: var(--pf-global--spacer--sm) 0 0;
+    color: var(--pf-global--palette--black-600);
+}
+
+.sensor-sources {
+    margin-top: var(--pf-global--spacer--sm);
+}
+
+.sensor-table-container {
+    margin-top: var(--pf-global--spacer--lg);
+}
+
+.sensor-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pf-global--spacer--sm);
+    color: var(--pf-global--palette--black-700);
+}
+
+.sensor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pf-global--spacer--sm);
+}

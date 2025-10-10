@@ -43,6 +43,8 @@ export interface SensorChipGroup {
     category: SensorCategory;
     /** Individual sensor readings belonging to the chip. */
     readings: Reading[];
+    /** Optional indicator describing the data source/provider. */
+    source?: string;
 }
 
 /**

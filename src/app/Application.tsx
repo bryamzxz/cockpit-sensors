@@ -19,10 +19,18 @@
 
 import React from 'react';
 import {
+    Alert,
+    AlertActionLink,
+    AlertVariant,
+    Button,
+    ClipboardCopy,
     Content,
+    Label,
+    LabelGroup,
     Page,
     PageSection,
     PageSectionProps,
+    Spinner,
     Tab,
     TabTitleText,
     Tabs,
@@ -76,7 +84,7 @@ const TABS: readonly TabDefinition[] = [
 
 export const Application: React.FC = () => {
     const [activeKey, setActiveKey] = React.useState<number>(TABS[0].eventKey);
-    const { data, isLoading, isMocked } = useSensors();
+    const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors();
 
     const handleTabSelect = React.useCallback<NonNullable<React.ComponentProps<typeof Tabs>['onSelect']>>(
         (_event, eventKey) => {
@@ -98,9 +106,77 @@ export const Application: React.FC = () => {
         [data.groups],
     );
 
+    const renderBanner = () => {
+        switch (status) {
+            case 'needs-privileges':
+                return (
+                    <Alert
+                        isInline
+                        variant={AlertVariant.warning}
+                        title={_('Sensor data requires administrative privileges')}
+                        actionLinks={
+                            <AlertActionLink onClick={retry}>{_('Retry with privileges')}</AlertActionLink>
+                        }
+                    >
+                        <p>
+                            {_('Cockpit could not read sensor data without elevated permissions. Retry the operation to trigger a privilege prompt.')}
+                        </p>
+                        {lastError && <p className="sensor-banner__hint">{lastError}</p>}
+                    </Alert>
+                );
+            case 'no-sources':
+                return (
+                    <Alert
+                        isInline
+                        variant={AlertVariant.info}
+                        title={_('No sensor backends are available on this system')}
+                    >
+                        <p>
+                            {_('Install the recommended packages below and rerun the detection to expose hardware monitoring sensors.')}
+                        </p>
+                        <div className="sensor-banner__copy">
+                            <ClipboardCopy isCode isReadOnly hoverTip={_('Copy command')} clickTip={_('Copied')}>
+                                sudo apt install lm-sensors nvme-cli smartmontools &amp;&amp; sudo sensors-detect --auto
+                            </ClipboardCopy>
+                        </div>
+                        <Button variant="secondary" onClick={retry} className="sensor-banner__action">
+                            {_('Run detection again')}
+                        </Button>
+                    </Alert>
+                );
+            case 'no-data':
+                return (
+                    <Alert
+                        isInline
+                        variant={AlertVariant.info}
+                        title={_('No live sensor readings were reported')}
+                    >
+                        <p>
+                            {_('This environment may not expose physical sensors. Virtual machines commonly omit hardware monitoring interfaces.')}
+                        </p>
+                    </Alert>
+                );
+            case 'error':
+                return (
+                    <Alert isInline variant={AlertVariant.danger} title={_('Unable to collect sensor data')}>
+                        <p>
+                            {_('An unexpected error prevented the Sensors page from retrieving live metrics.')}
+                        </p>
+                        {lastError && <p className="sensor-banner__hint">{lastError}</p>}
+                        <Button variant="secondary" onClick={retry} className="sensor-banner__action">
+                            {_('Try again')}
+                        </Button>
+                    </Alert>
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <Page>
             <PageSection variant={PAGE_SECTION_VARIANT} isFilled>
+                <div className="sensor-banner">{renderBanner()}</div>
                 <Tabs
                     activeKey={activeKey}
                     onSelect={handleTabSelect}
@@ -112,18 +188,27 @@ export const Application: React.FC = () => {
                             <Content className="sensor-description">
                                 <h2>{tab.title}</h2>
                                 <p>{tab.description}</p>
-                                {!isMocked && !isLoading && data.groups.length === 0 && (
-                                    <small>
-                                        {_('Live sensor data will appear once the service integration is enabled.')}
-                                    </small>
+                                {availableProviders.length > 0 && (
+                                    <LabelGroup className="sensor-sources" categoryName={_('Data sources')}>
+                                        {availableProviders.map(provider => (
+                                            <Label key={provider} color="blue">
+                                                {provider}
+                                                {activeProvider === provider && (
+                                                    <span className="pf-v5-u-ml-sm">{_('(active)')}</span>
+                                                )}
+                                            </Label>
+                                        ))}
+                                    </LabelGroup>
                                 )}
                             </Content>
-                            <div style={{ marginTop: 'var(--pf-global--spacer--lg)' }}>
-                                {isLoading ? (
-                                    <p>{_('Loading sensor data...')}</p>
-                                ) : (
-                                    <SensorTable groups={getGroupsForCategory(tab.category)} />
+                            <div className="sensor-table-container">
+                                {isLoading && (
+                                    <div className="sensor-loading">
+                                        <Spinner size="lg" />
+                                        <span>{_('Loading sensor data...')}</span>
+                                    </div>
                                 )}
+                                {!isLoading && <SensorTable groups={getGroupsForCategory(tab.category)} />}
                             </div>
                         </Tab>
                     ))}

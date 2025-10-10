@@ -1,9 +1,12 @@
 # Cockpit Sensors
 
 Cockpit Sensors is a [Cockpit](https://cockpit-project.org/) module that displays
-telemetry provided by `lm-sensors`. The project ships a browser bundle that can
-be installed on any host running Cockpit and builds through a custom
-`build.js` pipeline powered by esbuild, React and PatternFly.
+hardware telemetry collected from the host system. The frontend consumes
+standard Linux monitoring interfaces such as `/sys/class/hwmon`,
+`sensors -j` (lm-sensors) and `nvme smart-log` (nvme-cli) and surfaces the
+available temperature, fan and voltage readings. The project ships a browser
+bundle that can be installed on any host running Cockpit and builds through a
+custom `build.js` pipeline powered by esbuild, React and PatternFly.
 
 ## Requirements
 
@@ -75,21 +78,27 @@ the directories that exist to the Sass loader and `SASS_PATH`:
 You can still override the include path by exporting `SASS_PATH` before running
 the scripts, in which case the tooling leaves your custom value untouched.
 
-### Mock data with `VITE_MOCK`
+### Data sources and graceful degradation
 
-When developing without a running Cockpit backend you can ask the application to
-return mocked data:
+At runtime the Sensors page evaluates the available telemetry backends in the
+following order:
+
+1. `/sys/class/hwmon` for direct kernel sensor exposure.
+2. `sensors -j` from the lm-sensors package.
+3. `nvme smart-log -o json` from nvme-cli for NVMe device temperatures.
+
+The first backend that reports data for a given sensor kind feeds the UI, while
+NVMe telemetry is always added as an extra source when available. If no backend
+is present, the page renders a banner with setup instructions and offers a
+single-click copy of the recommended installation command:
 
 ```bash
-VITE_MOCK=true npm run dev
+sudo apt install lm-sensors nvme-cli smartmontools && sudo sensors-detect --auto
 ```
 
-`VITE_MOCK` is also honoured by the production build (`npm run build`) if you
-need to ship a bundle with mock values for demos. The esbuild script reads the
-environment variable and injects it into the bundle before `src/index.tsx`
-executes, exposing it on `globalThis.VITE_MOCK` (and `import.meta.env.VITE_MOCK`)
-so the React hooks resolve the correct data source in both development and
-production builds.
+Commands are executed via `cockpit.spawn(..., { superuser: 'try' })`. Should the
+host require elevated permissions, the page displays a “Retry with privileges”
+call to action that re-triggers detection and prompts Cockpit to escalate.
 
 ## Installing the bundle in Cockpit
 

@@ -51,3 +51,63 @@ msgstr "Erweitern Sie alle Karten"
 #: src/app.jsx:174
 msgid "Install"
 msgstr "Installieren"
+
+#: src/app/Application.tsx
+msgid "Sensor data requires administrative privileges"
+msgstr "Sensordaten erfordern administrative Berechtigungen"
+
+#: src/app/Application.tsx
+msgid "Retry with privileges"
+msgstr "Mit Berechtigungen erneut versuchen"
+
+#: src/app/Application.tsx
+msgid "Cockpit could not read sensor data without elevated permissions. Retry the operation to trigger a privilege prompt."
+msgstr "Cockpit konnte ohne erhöhte Berechtigungen keine Sensordaten lesen. Versuchen Sie den Vorgang erneut, um eine Berechtigungsabfrage auszulösen."
+
+#: src/app/Application.tsx
+msgid "No sensor backends are available on this system"
+msgstr "Auf diesem System sind keine Sensor-Backends verfügbar"
+
+#: src/app/Application.tsx
+msgid "Install the recommended packages below and rerun the detection to expose hardware monitoring sensors."
+msgstr "Installieren Sie die unten empfohlenen Pakete und führen Sie die Erkennung erneut aus, um Hardware-Überwachungssensoren bereitzustellen."
+
+#: src/app/Application.tsx
+msgid "Copy command"
+msgstr "Befehl kopieren"
+
+#: src/app/Application.tsx
+msgid "Copied"
+msgstr "Kopiert"
+
+#: src/app/Application.tsx
+msgid "Run detection again"
+msgstr "Erkennung erneut ausführen"
+
+#: src/app/Application.tsx
+msgid "No live sensor readings were reported"
+msgstr "Es wurden keine aktuellen Sensorwerte gemeldet"
+
+#: src/app/Application.tsx
+msgid "This environment may not expose physical sensors. Virtual machines commonly omit hardware monitoring interfaces."
+msgstr "Diese Umgebung stellt möglicherweise keine physischen Sensoren bereit. Virtuelle Maschinen lassen Hardware-Überwachungsschnittstellen häufig weg."
+
+#: src/app/Application.tsx
+msgid "Unable to collect sensor data"
+msgstr "Sensordaten konnten nicht gesammelt werden"
+
+#: src/app/Application.tsx
+msgid "An unexpected error prevented the Sensors page from retrieving live metrics."
+msgstr "Ein unerwarteter Fehler verhinderte, dass die Sensorseite Live-Metriken abrief."
+
+#: src/app/Application.tsx
+msgid "Try again"
+msgstr "Erneut versuchen"
+
+#: src/app/Application.tsx
+msgid "Data sources"
+msgstr "Datenquellen"
+
+#: src/app/Application.tsx
+msgid "(active)"
+msgstr "(aktiv)"
