@@ -3,7 +3,6 @@ import {
     Button,
     EmptyState,
     EmptyStateBody,
-    EmptyStateHeader,
     FormSelect,
     FormSelectOption,
     Label,
@@ -14,6 +13,7 @@ import {
     Tooltip,
 } from '@patternfly/react-core';
 import { DownloadIcon, OutlinedStarIcon, SearchIcon, StarIcon } from '@patternfly/react-icons';
+import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 
 import { Sparkline } from './Sparkline';
 import { calcStats, pushSample, Sample } from '../lib/history';
