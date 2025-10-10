@@ -10,15 +10,24 @@ vi.mock('@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader'
         titleText,
         headingLevel = 'h2',
     }: {
-        icon?: React.ReactNode;
+        icon?: React.ComponentType | React.ReactNode;
         titleText?: React.ReactNode;
         headingLevel?: keyof JSX.IntrinsicElements;
     }) => {
         const Heading = headingLevel ?? 'h2';
+        let renderedIcon: React.ReactNode = null;
+        if (icon) {
+            if (typeof icon === 'function') {
+                const IconComponent = icon as React.ComponentType;
+                renderedIcon = React.createElement(IconComponent, null);
+            } else if (React.isValidElement(icon)) {
+                renderedIcon = icon;
+            }
+        }
         return React.createElement(
             'div',
             null,
-            icon,
+            renderedIcon,
             titleText ? React.createElement(Heading, null, titleText) : null,
         );
     },

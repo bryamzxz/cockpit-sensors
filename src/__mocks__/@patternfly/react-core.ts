@@ -53,8 +53,25 @@ export const EmptyStateHeader = ({
     icon,
     titleText,
     headingLevel = 'h2',
-}: { icon?: React.ReactNode; titleText?: React.ReactNode; headingLevel?: HeadingLevel }) =>
-    React.createElement(headingLevel, null, icon, titleText);
+}: {
+    icon?: React.ComponentType | React.ReactNode;
+    titleText?: React.ReactNode;
+    headingLevel?: HeadingLevel;
+}) => {
+    const children: React.ReactNode[] = [];
+    if (icon) {
+        if (typeof icon === 'function') {
+            const IconComponent = icon as React.ComponentType;
+            children.push(React.createElement(IconComponent));
+        } else if (React.isValidElement(icon)) {
+            children.push(icon);
+        }
+    }
+    if (titleText) {
+        children.push(titleText);
+    }
+    return React.createElement(headingLevel, null, ...children);
+};
 export const EmptyStateIcon = ({ icon }: { icon?: React.ElementType }) => {
     const IconComponent: React.ElementType = icon ?? 'span';
     return React.createElement(IconComponent, null);
