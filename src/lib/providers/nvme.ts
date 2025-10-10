@@ -237,9 +237,10 @@ export class NvmeProvider implements Provider {
         void poll();
 
         if (typeof window !== 'undefined') {
+            const interval = context?.refreshIntervalMs ?? POLL_INTERVAL_MS;
             this.intervalHandle = window.setInterval(() => {
                 void poll();
-            }, POLL_INTERVAL_MS);
+            }, interval);
         }
 
         return () => {

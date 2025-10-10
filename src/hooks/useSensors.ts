@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { EMPTY_SENSOR_DATA, SensorChipGroup, SensorData } from '../types/sensors';
+import { DEFAULT_SENSOR_REFRESH_MS } from './useSensorPreferences';
 import { hwmonProvider } from '../lib/providers/hwmon';
 import { lmSensorsProvider } from '../lib/providers/lm-sensors';
 import { nvmeProvider } from '../lib/providers/nvme';
@@ -117,7 +118,7 @@ export const __testing = {
     samplesToSensorData,
 };
 
-export const useSensors = (): UseSensorsResult => {
+export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSensorsResult => {
     const [state, setState] = React.useState<UseSensorsState>({
         data: { ...EMPTY_SENSOR_DATA },
         isLoading: true,
@@ -222,12 +223,16 @@ export const useSensors = (): UseSensorsResult => {
                     }
 
                     try {
-                        const unsubscribe = provider.start(samples => {
-                            samplesByProvider.set(provider.name, samples);
-                            updateState();
-                        }, {
-                            onError: error => handleProviderError(provider, error),
-                        });
+                        const unsubscribe = provider.start(
+                            samples => {
+                                samplesByProvider.set(provider.name, samples);
+                                updateState();
+                            },
+                            {
+                                onError: error => handleProviderError(provider, error),
+                                refreshIntervalMs,
+                            },
+                        );
 
                         auxiliaryUnsubscribes.push(unsubscribe);
                         samplesByProvider.set(provider.name, []);
@@ -278,12 +283,16 @@ export const useSensors = (): UseSensorsResult => {
             setAvailableProviders(prev => Array.from(new Set([...prev, provider.name])));
 
             try {
-                primaryUnsubscribe = provider.start(samples => {
-                    samplesByProvider.set(provider.name, samples);
-                    updateState();
-                }, {
-                    onError: error => handleProviderError(provider, error),
-                });
+                primaryUnsubscribe = provider.start(
+                    samples => {
+                        samplesByProvider.set(provider.name, samples);
+                        updateState();
+                    },
+                    {
+                        onError: error => handleProviderError(provider, error),
+                        refreshIntervalMs,
+                    },
+                );
             } catch (error) {
                 if (error instanceof ProviderError) {
                     handleProviderError(provider, error);
@@ -300,7 +309,7 @@ export const useSensors = (): UseSensorsResult => {
             primaryUnsubscribe?.();
             auxiliaryUnsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [retryToken]);
+    }, [refreshIntervalMs, retryToken]);
 
     const retry = React.useCallback(() => {
         setState({

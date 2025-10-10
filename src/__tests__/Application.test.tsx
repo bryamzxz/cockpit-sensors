@@ -1,86 +1,34 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Application } from '../app/Application';
-import { useSensors } from '../hooks/useSensors';
+const mocks = vi.hoisted(() => ({
+    useSensors: vi.fn(),
+}));
 
-vi.mock('@patternfly/react-core', async () => {
-    const React = await import('react');
-
-    const createComponent = (tag: keyof JSX.IntrinsicElements = 'div') => {
-        const Component = function MockComponent({
-            children,
-            ...props
-        }: React.PropsWithChildren<Record<string, unknown>>) {
-            return React.createElement(tag, props, children);
-        };
-
-        const normalizedTag = typeof tag === 'string' ? tag : 'Component';
-        Component.displayName = `Mock${normalizedTag.charAt(0).toUpperCase()}${normalizedTag.slice(1)}`;
-
-        return Component;
-    };
-
-    const createFragmentComponent = (displayName: string) => {
-        const Component = function MockFragment({ children }: React.PropsWithChildren<unknown>) {
-            return React.createElement(React.Fragment, null, children);
-        };
-
-        Component.displayName = displayName;
-
-        return Component;
-    };
-
-    const Alert = function MockAlert({
-        title,
-        children,
-        ...props
-    }: React.PropsWithChildren<{ title?: React.ReactNode } & { isInline?: boolean; variant?: unknown }>) {
-        const filtered: Record<string, unknown> = { ...props };
-        delete filtered.isInline;
-        delete filtered.variant;
-        return React.createElement('section', filtered, React.createElement(React.Fragment, null, title, children));
-    };
-
-    const PageSection = function MockPageSection({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) {
-        const filtered: Record<string, unknown> = { ...props };
-        delete filtered.variant;
-        delete filtered.isFilled;
-        return React.createElement('section', filtered, children);
-    };
-
-    const ClipboardCopy = function MockClipboardCopy({
-        children,
-    }: React.PropsWithChildren<Record<string, unknown>>) {
-        return React.createElement('pre', null, children);
-    };
-
-    const LabelGroup = function MockLabelGroup({
-        children,
-    }: React.PropsWithChildren<Record<string, unknown>>) {
-        return React.createElement('div', null, children);
-    };
-
-    return {
-        Alert,
-        AlertActionLink: createComponent('button'),
-        AlertVariant: { info: 'info', warning: 'warning', danger: 'danger' },
-        Button: createComponent('button'),
-        ClipboardCopy,
-        Content: createComponent('section'),
-        Label: createComponent('span'),
-        LabelGroup,
-        Page: createComponent('main'),
-        PageSection,
-        Spinner: createComponent('div'),
-        Tab: createFragmentComponent('MockTab'),
-        TabTitleText: createFragmentComponent('MockTabTitleText'),
-        Tabs: createFragmentComponent('MockTabs'),
-    };
-});
-
+vi.mock('@patternfly/react-core', async () => await import('../__mocks__/@patternfly/react-core'));
+vi.mock('@patternfly/react-icons', async () => await import('../__mocks__/@patternfly/react-icons'));
+vi.mock('../utils/cockpit', () => ({
+    _: (message: string) => message,
+}));
+vi.mock('../components/SensorTable', () => ({
+    SensorTable: () => <div data-testid="sensor-table" />,
+}));
+vi.mock('../hooks/useSensorPreferences', () => ({
+    useSensorPreferences: () => ({
+        unit: 'C',
+        setUnit: vi.fn(),
+        refreshMs: 5000,
+        setRefreshMs: vi.fn(),
+        pinned: [],
+        togglePinned: vi.fn(),
+        setPinned: vi.fn(),
+    }),
+}));
+vi.mock('../hooks/useSensors', () => ({
+    useSensors: (...args: unknown[]) => mocks.useSensors(...args),
+}));
 vi.mock(
     'cockpit',
     () => ({
@@ -91,13 +39,15 @@ vi.mock(
     { virtual: true }
 );
 
-vi.mock('../hooks/useSensors');
-
-const mockedUseSensors = vi.mocked(useSensors);
+let Application: typeof import('../app/Application').Application;
 
 describe('Application', () => {
+    beforeAll(async () => {
+        ({ Application } = await import('../app/Application'));
+    });
+
     beforeEach(() => {
-        mockedUseSensors.mockReset();
+        mocks.useSensors.mockReset();
     });
 
     afterEach(() => {
@@ -105,7 +55,7 @@ describe('Application', () => {
     });
 
     it('renders the onboarding banner when no backends are available', () => {
-        mockedUseSensors.mockReturnValue({
+        mocks.useSensors.mockReturnValue({
             data: { groups: [] },
             isLoading: false,
             status: 'no-sources',
@@ -117,11 +67,12 @@ describe('Application', () => {
 
         render(<Application />);
 
+        expect(mocks.useSensors).toHaveBeenCalledWith(5000);
         expect(screen.getByText('No sensor backends are available on this system')).toBeInTheDocument();
     });
 
     it('shows available providers when sensor groups are present', () => {
-        mockedUseSensors.mockReturnValue({
+        mocks.useSensors.mockReturnValue({
             data: {
                 groups: [
                     {

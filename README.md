@@ -100,6 +100,17 @@ Commands are executed via `cockpit.spawn(..., { superuser: 'try' })`. Should the
 host require elevated permissions, the page displays a “Retry with privileges”
 call to action that re-triggers detection and prompts Cockpit to escalate.
 
+### Session analytics and export
+
+The Sensors table keeps a short rolling history in memory for each detected
+sensor (up to 300 samples). The UI exposes per-session minimum/average/maximum
+stats, an inline sparkline trend and controls to highlight values approaching or
+exceeding the reported thresholds. Operators can pin high-priority sensors to
+the top, switch between Celsius and Fahrenheit without resetting the history,
+choose the polling interval (2/5/10 seconds) and export the captured timeline as
+CSV for offline analysis. All preferences persist via `localStorage` so that the
+page restores the previous state on reload.
+
 ## Installing the bundle in Cockpit
 
 1. Build the project:
