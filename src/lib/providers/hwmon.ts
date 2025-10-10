@@ -145,6 +145,9 @@ const unitForKind = (kind: SensorKind): string => {
             return 'RPM';
         case 'volt':
             return 'V';
+        case 'other':
+        default:
+            return '';
     }
 };
 

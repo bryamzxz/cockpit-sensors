@@ -1,6 +1,14 @@
 import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit, CockpitSpawnError } from '../../types/cockpit';
-import { Provider, ProviderContext, ProviderError, SensorKind, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
+import {
+    Provider,
+    ProviderContext,
+    ProviderError,
+    SensorKind,
+    SensorSample,
+    SENSOR_KIND_TO_CATEGORY,
+    SENSOR_KIND_TO_UNIT,
+} from './types';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -63,10 +71,12 @@ const isCommandMissing = (error: unknown): boolean => {
     return false;
 };
 
-const sensorKindForKey = (key: string): SensorKind | null => {
-    const match = key.match(/^([a-zA-Z]+)\d+/);
+const INPUT_SUFFIX = '_input';
+
+const sensorKindForKey = (key: string): SensorKind => {
+    const match = key.match(/^([a-zA-Z]+)/);
     if (!match) {
-        return null;
+        return 'other';
     }
 
     const prefix = match[1].toLowerCase();
@@ -80,13 +90,27 @@ const sensorKindForKey = (key: string): SensorKind | null => {
         case 'vcc':
             return 'volt';
         default:
-            return null;
+            return 'other';
     }
+};
+
+const prettifyLabel = (label: string): string => {
+    const trimmed = label.trim();
+    if (/^package id\s*\d+$/i.test(trimmed)) {
+        return 'CPU Package';
+    }
+
+    const coreMatch = trimmed.match(/^core\s*(\d+)$/i);
+    if (coreMatch) {
+        return `CPU Core ${coreMatch[1]}`;
+    }
+
+    return trimmed;
 };
 
 const readSensorsJson = async (cockpitInstance: Cockpit): Promise<unknown> => {
     try {
-        const output = await cockpitInstance.spawn(['sensors', '-j'], { superuser: 'try', err: 'out' });
+        const output = await cockpitInstance.spawn(['sensors', '-jA'], { superuser: 'try', err: 'out' });
         const trimmed = output.trim();
         if (!trimmed) {
             return {};
@@ -111,42 +135,40 @@ const readSensorsJson = async (cockpitInstance: Cockpit): Promise<unknown> => {
     }
 };
 
-const parseSensorObject = (
+const buildSample = (
     chipId: string,
     chipLabel: string,
-    sensorKey: string,
-    sensorValue: unknown,
+    groupKey: string,
+    featureKey: string,
+    featureValue: unknown,
+    featureRecord: Record<string, unknown>,
 ): SensorSample | null => {
-    if (!isRecord(sensorValue)) {
-        return null;
-    }
-
-    const inputKey = `${sensorKey}_input`;
-    const input = coerceNumber(sensorValue[inputKey]);
+    const input = coerceNumber(featureValue);
     if (typeof input !== 'number') {
         return null;
     }
 
-    const kind = sensorKindForKey(sensorKey);
-    if (!kind) {
-        return null;
-    }
+    const kind = sensorKindForKey(featureKey);
+    const baseKey = featureKey.replace(new RegExp(`${INPUT_SUFFIX}$`), '');
 
-    const labelCandidate = sensorValue[`${sensorKey}_label`];
-    const label = typeof labelCandidate === 'string' && labelCandidate.trim().length > 0
-        ? labelCandidate.trim()
-        : sensorKey;
+    const labelCandidate = featureRecord[`${baseKey}_label`];
+    const fallbackLabel =
+        typeof groupKey === 'string' && groupKey.trim().length > 0 && groupKey !== chipId ? groupKey : undefined;
+    const label =
+        (typeof labelCandidate === 'string' && labelCandidate.trim().length > 0
+            ? labelCandidate.trim()
+            : fallbackLabel) ?? baseKey;
 
-    const min = coerceNumber(sensorValue[`${sensorKey}_min`]);
-    const max = coerceNumber(sensorValue[`${sensorKey}_max`]);
-    const critical = coerceNumber(
-        sensorValue[`${sensorKey}_crit`] ?? sensorValue[`${sensorKey}_crit_hyst`] ?? sensorValue[`${sensorKey}_crit_alarm`],
+    const min = coerceNumber(featureRecord[`${baseKey}_min`] ?? featureRecord[`${baseKey}_low`]);
+    const max = coerceNumber(
+        featureRecord[`${baseKey}_max`] ?? featureRecord[`${baseKey}_high`] ?? featureRecord[`${baseKey}_crit`],
     );
+    const critical = coerceNumber(featureRecord[`${baseKey}_crit`]);
 
     return {
         kind,
-        id: `${chipId}:${sensorKey}`,
-        label,
+        id: `${chipId}:${baseKey}`,
+        label: prettifyLabel(label),
         value: input,
         min,
         max,
@@ -155,10 +177,33 @@ const parseSensorObject = (
         chipId,
         chipLabel,
         chipName: chipId,
+        category: SENSOR_KIND_TO_CATEGORY[kind],
     };
 };
 
-const parseSensorsPayload = (payload: unknown): SensorSample[] => {
+const collectGroupSamples = (
+    chipId: string,
+    chipLabel: string,
+    groupKey: string,
+    groupValue: Record<string, unknown>,
+): SensorSample[] => {
+    const samples: SensorSample[] = [];
+
+    for (const [featureKey, featureValue] of Object.entries(groupValue)) {
+        if (!featureKey.endsWith(INPUT_SUFFIX)) {
+            continue;
+        }
+
+        const sample = buildSample(chipId, chipLabel, groupKey, featureKey, featureValue, groupValue);
+        if (sample) {
+            samples.push(sample);
+        }
+    }
+
+    return samples;
+};
+
+export const normalizeLmSensors = (payload: unknown): SensorSample[] => {
     if (!isRecord(payload)) {
         return [];
     }
@@ -179,8 +224,21 @@ const parseSensorsPayload = (payload: unknown): SensorSample[] => {
                 continue;
             }
 
-            const sample = parseSensorObject(chipId, chipLabel, sensorKey, sensorValue);
-            if (sample) {
+            if (sensorKey.endsWith(INPUT_SUFFIX)) {
+                const featureRecord = chipValue;
+                const sample = buildSample(chipId, chipLabel, chipId, sensorKey, sensorValue, featureRecord);
+                if (sample) {
+                    samples.push(sample);
+                }
+                continue;
+            }
+
+            if (!isRecord(sensorValue)) {
+                continue;
+            }
+
+            const groupSamples = collectGroupSamples(chipId, chipLabel, sensorKey, sensorValue);
+            for (const sample of groupSamples) {
                 samples.push(sample);
             }
         }
@@ -209,7 +267,7 @@ export class LmSensorsProvider implements Provider {
             return {};
         });
 
-        const samples = parseSensorsPayload(payload);
+        const samples = normalizeLmSensors(payload);
         return samples.length > 0;
     }
 
@@ -224,7 +282,7 @@ export class LmSensorsProvider implements Provider {
                     return;
                 }
 
-                const samples = parseSensorsPayload(payload);
+                const samples = normalizeLmSensors(payload);
                 onChange(samples);
             } catch (error) {
                 if (disposed) {
