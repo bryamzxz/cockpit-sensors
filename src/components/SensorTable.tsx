@@ -12,8 +12,8 @@ import {
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
-import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 import { DownloadIcon, OutlinedStarIcon, SearchIcon, StarIcon } from '@patternfly/react-icons';
+import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 
 import { Sparkline } from './Sparkline';
 import { calcStats, pushSample, Sample } from '../lib/history';
@@ -24,6 +24,7 @@ import { buildHistoryCsv, HistorySeries } from '../utils/csv';
 import { getThresholdState } from '../utils/thresholds';
 import { _ } from '../utils/cockpit';
 import type { SensorCategory, SensorChipGroup } from '../types/sensors';
+import { saveTextFile } from '../utils/download';
 
 const MISSING_VALUE = '—';
 
@@ -224,20 +225,11 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     );
 
     const handleExport = React.useCallback(() => {
-        if (typeof document === 'undefined') {
-            return;
-        }
-
         const history = historyRef.current;
-        const series: HistorySeries[] = [];
+        const series: HistorySeries[] = sortedRows.map(row => {
+            const buffer = history.get(row.key) ?? [];
 
-        for (const row of sortedRows) {
-            const buffer = history.get(row.key);
-            if (!buffer || buffer.length === 0) {
-                continue;
-            }
-
-            const displayHistory = buffer.map(sample => ({
+            const samples = buffer.map(sample => ({
                 t: sample.t,
                 v: convertForDisplay(sample.v, row.readingUnit, unit),
             }));
@@ -247,25 +239,20 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                 ? `${row.chip} — ${row.readingLabel} (${labelUnit})`
                 : `${row.chip} — ${row.readingLabel}`;
 
-            series.push({ key: row.key, label, history: displayHistory });
-        }
+            return { key: row.key, label, samples };
+        });
 
         if (series.length === 0) {
             return;
         }
 
         const csv = buildHistoryCsv(series);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = 'sensors.csv';
-        anchor.style.display = 'none';
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(url);
+        const now = new Date();
+        const stamp =
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` +
+            `_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const filename = `cockpit-sensors_${stamp}.csv`;
+        saveTextFile(filename, csv, 'text/csv;charset=utf-8');
     }, [sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
@@ -351,7 +338,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             {sortedRows.length === 0 ? (
                 <div className="sensor-zero-state">
                     <EmptyState variant="sm">
-                        <EmptyStateHeader icon={SearchIcon} titleText={zeroState.title} headingLevel="h3" />
+                        <EmptyStateHeader icon={<SearchIcon />} titleText={zeroState.title} headingLevel="h3" />
                         <EmptyStateBody>{zeroState.description}</EmptyStateBody>
                     </EmptyState>
                 </div>
