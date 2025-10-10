@@ -28,13 +28,14 @@ interface UseSensorsState {
     lastError?: string;
 }
 
-interface UseSensorsResult extends UseSensorsState {
+export interface UseSensorsResult extends UseSensorsState {
     availableProviders: string[];
     retry: () => void;
 }
 
 const PRIMARY_PROVIDERS: Provider[] = [hwmonProvider, lmSensorsProvider];
 const AUXILIARY_PROVIDERS: Provider[] = [nvmeProvider];
+const AUXILIARY_PROVIDER_NAMES = new Set(AUXILIARY_PROVIDERS.map(provider => provider.name));
 const AGGREGATION_ORDER = PRIMARY_PROVIDERS.concat(AUXILIARY_PROVIDERS).map(provider => provider.name);
 
 const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): SampleWithProvider[] => {
@@ -171,6 +172,22 @@ export const useSensors = (): UseSensorsResult => {
             }
 
             if (error.code === 'permission-denied') {
+                if (AUXILIARY_PROVIDER_NAMES.has(provider.name)) {
+                    const aggregated = aggregateSamples(samplesByProvider);
+                    if (aggregated.length > 0) {
+                        const providerName = activeProvider?.name ?? aggregated[0]?.provider;
+
+                        setState(prev => ({
+                            data: samplesToSensorData(aggregated),
+                            isLoading: false,
+                            status: 'ready',
+                            activeProvider: prev.activeProvider ?? providerName,
+                            lastError: error.message,
+                        }));
+                        return;
+                    }
+                }
+
                 setState(prev => ({
                     data: prev.data,
                     isLoading: false,
