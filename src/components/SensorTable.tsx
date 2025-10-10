@@ -3,7 +3,6 @@ import {
     Button,
     EmptyState,
     EmptyStateBody,
-    EmptyStateHeader,
     FormSelect,
     FormSelectOption,
     Label,
@@ -13,6 +12,7 @@ import {
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
+import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 import { DownloadIcon, OutlinedStarIcon, SearchIcon, StarIcon } from '@patternfly/react-icons';
 
 import { Sparkline } from './Sparkline';
@@ -347,11 +347,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             {sortedRows.length === 0 ? (
                 <div className="sensor-zero-state">
                     <EmptyState variant="sm">
-                        <EmptyStateHeader
-                            icon={<SearchIcon />}
-                            titleText={zeroState.title}
-                            headingLevel="h3"
-                        />
+                        <EmptyStateHeader icon={SearchIcon} titleText={zeroState.title} headingLevel="h3" />
                         <EmptyStateBody>{zeroState.description}</EmptyStateBody>
                     </EmptyState>
                 </div>
