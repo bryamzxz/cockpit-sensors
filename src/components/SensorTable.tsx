@@ -1,4 +1,5 @@
 import React from 'react';
+import { Label } from '@patternfly/react-core';
 
 import { Reading, SensorChipGroup } from '../types/sensors';
 import { _ } from '../utils/cockpit';
@@ -11,6 +12,7 @@ interface TableRow {
     key: string;
     chip: string;
     reading: Reading;
+    source?: string;
 }
 
 const MISSING_VALUE = '—';
@@ -37,6 +39,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({ groups }) => {
                     key: `${group.id}-${index}`,
                     chip: group.label,
                     reading,
+                    source: group.source,
                 })),
             ),
         [groups],
@@ -67,7 +70,16 @@ export const SensorTable: React.FC<SensorTableProps> = ({ groups }) => {
 
                             return (
                                 <tr key={row.key} className={rowClassName}>
-                                    <td data-label={_('Chip')}>{row.chip}</td>
+                                    <td data-label={_('Chip')}>
+                                        <span className="sensor-chip">
+                                            <span>{row.chip}</span>
+                                            {row.source && (
+                                                <Label color="grey" isCompact>
+                                                    {row.source}
+                                                </Label>
+                                            )}
+                                        </span>
+                                    </td>
                                     <td data-label={_('Sensor')}>{reading.label}</td>
                                     <td data-label={_('Input')}>{formatValue(reading.input, reading.unit)}</td>
                                     <td data-label={_('Minimum')}>{formatValue(reading.min, reading.unit)}</td>

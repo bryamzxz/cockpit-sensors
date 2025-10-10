@@ -33,10 +33,48 @@ vi.mock('@patternfly/react-core', async () => {
         return Component;
     };
 
+    const Alert = function MockAlert({
+        title,
+        children,
+        ...props
+    }: React.PropsWithChildren<{ title?: React.ReactNode } & { isInline?: boolean; variant?: unknown }>) {
+        const filtered: Record<string, unknown> = { ...props };
+        delete filtered.isInline;
+        delete filtered.variant;
+        return React.createElement('section', filtered, React.createElement(React.Fragment, null, title, children));
+    };
+
+    const PageSection = function MockPageSection({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) {
+        const filtered: Record<string, unknown> = { ...props };
+        delete filtered.variant;
+        delete filtered.isFilled;
+        return React.createElement('section', filtered, children);
+    };
+
+    const ClipboardCopy = function MockClipboardCopy({
+        children,
+    }: React.PropsWithChildren<Record<string, unknown>>) {
+        return React.createElement('pre', null, children);
+    };
+
+    const LabelGroup = function MockLabelGroup({
+        children,
+    }: React.PropsWithChildren<Record<string, unknown>>) {
+        return React.createElement('div', null, children);
+    };
+
     return {
+        Alert,
+        AlertActionLink: createComponent('button'),
+        AlertVariant: { info: 'info', warning: 'warning', danger: 'danger' },
+        Button: createComponent('button'),
+        ClipboardCopy,
         Content: createComponent('section'),
+        Label: createComponent('span'),
+        LabelGroup,
         Page: createComponent('main'),
-        PageSection: createComponent('section'),
+        PageSection,
+        Spinner: createComponent('div'),
         Tab: createFragmentComponent('MockTab'),
         TabTitleText: createFragmentComponent('MockTabTitleText'),
         Tabs: createFragmentComponent('MockTabs'),
@@ -57,8 +95,6 @@ vi.mock('../hooks/useSensors');
 
 const mockedUseSensors = vi.mocked(useSensors);
 
-const FALLBACK_TEXT = 'Live sensor data will appear once the service integration is enabled.';
-
 describe('Application', () => {
     beforeEach(() => {
         mockedUseSensors.mockReset();
@@ -68,20 +104,23 @@ describe('Application', () => {
         cleanup();
     });
 
-    it('displays the live data hint when no real sensor data is available', () => {
+    it('renders the onboarding banner when no backends are available', () => {
         mockedUseSensors.mockReturnValue({
             data: { groups: [] },
             isLoading: false,
-            isMocked: false,
+            status: 'no-sources',
+            activeProvider: undefined,
+            lastError: undefined,
+            availableProviders: [],
+            retry: vi.fn(),
         });
 
         render(<Application />);
 
-        const hints = screen.getAllByText(FALLBACK_TEXT);
-        expect(hints.length).toBeGreaterThan(0);
+        expect(screen.getByText('No sensor backends are available on this system')).toBeInTheDocument();
     });
 
-    it('hides the live data hint when sensor groups are present', () => {
+    it('shows available providers when sensor groups are present', () => {
         mockedUseSensors.mockReturnValue({
             data: {
                 groups: [
@@ -91,15 +130,21 @@ describe('Application', () => {
                         label: 'Test chip',
                         category: 'temperature',
                         readings: [],
+                        source: 'hwmon',
                     },
                 ],
             },
             isLoading: false,
-            isMocked: false,
+            status: 'ready',
+            activeProvider: 'hwmon',
+            lastError: undefined,
+            availableProviders: ['hwmon'],
+            retry: vi.fn(),
         });
 
         render(<Application />);
 
-        expect(screen.queryByText(FALLBACK_TEXT)).not.toBeInTheDocument();
+        expect(screen.getAllByText('hwmon').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('(active)').length).toBeGreaterThan(0);
     });
 });

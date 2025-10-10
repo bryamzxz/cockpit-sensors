@@ -51,3 +51,63 @@ msgstr "Expandir todos os cards"
 #: src/app.jsx:174
 msgid "Install"
 msgstr "Instalar"
+
+#: src/app/Application.tsx
+msgid "Sensor data requires administrative privileges"
+msgstr "Os dados de sensores exigem privilégios administrativos"
+
+#: src/app/Application.tsx
+msgid "Retry with privileges"
+msgstr "Tentar novamente com privilégios"
+
+#: src/app/Application.tsx
+msgid "Cockpit could not read sensor data without elevated permissions. Retry the operation to trigger a privilege prompt."
+msgstr "O Cockpit não conseguiu ler os dados dos sensores sem permissões elevadas. Tente novamente para acionar o pedido de privilégios."
+
+#: src/app/Application.tsx
+msgid "No sensor backends are available on this system"
+msgstr "Nenhum backend de sensor está disponível neste sistema"
+
+#: src/app/Application.tsx
+msgid "Install the recommended packages below and rerun the detection to expose hardware monitoring sensors."
+msgstr "Instale os pacotes recomendados abaixo e execute a detecção novamente para expor os sensores de monitoramento de hardware."
+
+#: src/app/Application.tsx
+msgid "Copy command"
+msgstr "Copiar comando"
+
+#: src/app/Application.tsx
+msgid "Copied"
+msgstr "Copiado"
+
+#: src/app/Application.tsx
+msgid "Run detection again"
+msgstr "Executar a detecção novamente"
+
+#: src/app/Application.tsx
+msgid "No live sensor readings were reported"
+msgstr "Nenhuma leitura ao vivo de sensores foi informada"
+
+#: src/app/Application.tsx
+msgid "This environment may not expose physical sensors. Virtual machines commonly omit hardware monitoring interfaces."
+msgstr "Este ambiente pode não expor sensores físicos. Máquinas virtuais normalmente omitem interfaces de monitoramento de hardware."
+
+#: src/app/Application.tsx
+msgid "Unable to collect sensor data"
+msgstr "Não foi possível coletar dados dos sensores"
+
+#: src/app/Application.tsx
+msgid "An unexpected error prevented the Sensors page from retrieving live metrics."
+msgstr "Um erro inesperado impediu a página de Sensores de obter métricas em tempo real."
+
+#: src/app/Application.tsx
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#: src/app/Application.tsx
+msgid "Data sources"
+msgstr "Fontes de dados"
+
+#: src/app/Application.tsx
+msgid "(active)"
+msgstr "(ativo)"

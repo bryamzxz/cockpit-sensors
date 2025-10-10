@@ -1,159 +1,300 @@
 import React from 'react';
-import { EMPTY_SENSOR_DATA, SensorCategory, SensorData } from '../types/sensors';
-import { parseSensorsJson } from '../utils/parseSensorsJson';
 
-declare global {
-    interface ImportMeta {
-        readonly env?: {
-            readonly VITE_MOCK?: unknown;
-        };
-    }
+import { EMPTY_SENSOR_DATA, SensorChipGroup, SensorData } from '../types/sensors';
+import { hwmonProvider } from '../lib/providers/hwmon';
+import { lmSensorsProvider } from '../lib/providers/lm-sensors';
+import { nvmeProvider } from '../lib/providers/nvme';
+import {
+    Provider,
+    ProviderError,
+    SensorSample,
+    SENSOR_KIND_TO_CATEGORY,
+    SENSOR_KIND_TO_UNIT,
+} from '../lib/providers/types';
+
+export type SensorsStatus = 'loading' | 'ready' | 'no-data' | 'no-sources' | 'needs-privileges' | 'error';
+
+interface SampleWithProvider extends SensorSample {
+    provider: string;
 }
 
-const MOCK_REFRESH_INTERVAL_MS = 5000;
+export type { SampleWithProvider };
 
-interface UseSensorsResult {
+interface UseSensorsState {
     data: SensorData;
     isLoading: boolean;
-    isMocked: boolean;
+    status: SensorsStatus;
+    activeProvider?: string;
+    lastError?: string;
 }
 
-type MockReading = {
-    label: string;
-    input: number;
-    min?: number;
-    max?: number;
-    critical?: number;
-    unit?: string;
-};
+interface UseSensorsResult extends UseSensorsState {
+    availableProviders: string[];
+    retry: () => void;
+}
 
-type MockGroup = {
-    id: string;
-    name: string;
-    label: string;
-    category: SensorCategory;
-    readings: MockReading[];
-};
+const PRIMARY_PROVIDERS: Provider[] = [hwmonProvider, lmSensorsProvider];
+const AUXILIARY_PROVIDERS: Provider[] = [nvmeProvider];
+const AGGREGATION_ORDER = PRIMARY_PROVIDERS.concat(AUXILIARY_PROVIDERS).map(provider => provider.name);
 
-const BASE_MOCK_GROUPS: MockGroup[] = [
-    {
-        id: 'chip-cpu-0',
-        name: 'k10temp-pci-00c3',
-        label: 'CPU package sensors',
-        category: 'temperature',
-        readings: [
-            { label: 'Tctl', input: 48.5, max: 90, critical: 95, unit: '°C' },
-            { label: 'Tdie', input: 47.2, max: 90, critical: 95, unit: '°C' },
-        ],
-    },
-    {
-        id: 'chip-fan-0',
-        name: 'nct6796d-isa-0290',
-        label: 'Chassis fans',
-        category: 'fan',
-        readings: [
-            { label: 'Chassis fan 1', input: 1180, min: 600, max: 2100, unit: 'RPM' },
-            { label: 'Chassis fan 2', input: 1320, min: 600, max: 2200, unit: 'RPM' },
-        ],
-    },
-    {
-        id: 'chip-voltage-0',
-        name: 'nct6796d-isa-0290-voltage',
-        label: 'Voltage rails',
-        category: 'voltage',
-        readings: [
-            { label: '+12V', input: 12.2, min: 11.6, max: 12.6, unit: 'V' },
-            { label: '+5V', input: 5.02, min: 4.8, max: 5.2, unit: 'V' },
-        ],
-    },
-    {
-        id: 'chip-unknown-0',
-        name: 'nct6796d-isa-0290-other',
-        label: 'Auxiliary sensors',
-        category: 'unknown',
-        readings: [
-            { label: 'Intrusion detect', input: 0, unit: 'state' },
-            { label: 'VRM temperature', input: 42.1, unit: '°C' },
-        ],
-    },
-];
+const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): SampleWithProvider[] => {
+    const aggregated: SampleWithProvider[] = [];
+    const seen = new Set<string>();
 
-const buildMockPayload = (step: number) => ({
-    timestamp: Date.now(),
-    chips: BASE_MOCK_GROUPS.map(group => ({
-        ...group,
-        readings: group.readings.map((reading, index) => {
-            const oscillation = Math.sin(step / 2 + index) * 1.5;
-            const input = reading.input + oscillation;
-            return {
-                ...reading,
-                input: input.toFixed(2),
-            };
-        }),
-    })),
-});
+    for (const providerName of AGGREGATION_ORDER) {
+        const samples = samplesByProvider.get(providerName) ?? [];
+        for (const sample of samples) {
+            const dedupeKey = `${sample.kind}:${sample.id}`;
+            if (seen.has(dedupeKey)) {
+                continue;
+            }
 
-const readMockFlag = (): string | undefined => {
-    const globalValue = (globalThis as Record<string, unknown>).VITE_MOCK;
-    if (typeof globalValue === 'string' || typeof globalValue === 'number') {
-        return String(globalValue);
-    }
-
-    const importMetaEnv = import.meta.env;
-    if (importMetaEnv && typeof importMetaEnv === 'object') {
-        const fromImportMeta = (importMetaEnv as { VITE_MOCK?: unknown }).VITE_MOCK;
-        if (typeof fromImportMeta === 'string' || typeof fromImportMeta === 'number') {
-            return String(fromImportMeta);
+            aggregated.push({ ...sample, provider: providerName });
+            seen.add(dedupeKey);
         }
     }
 
-    return undefined;
+    return aggregated;
 };
 
-const useMockFlag = (): boolean => {
-    const [flag] = React.useState(() => {
-        const value = (readMockFlag() ?? '').toString().toLowerCase();
-        return value === '1' || value === 'true';
-    });
+const sortGroups = (groups: SensorChipGroup[]): SensorChipGroup[] => {
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+    return [...groups]
+            .sort((a, b) => collator.compare(a.label, b.label))
+            .map(group => ({
+                ...group,
+                readings: [...group.readings].sort((a, b) => collator.compare(a.label, b.label)),
+            }));
+};
 
-    return flag;
+const samplesToSensorData = (samples: SampleWithProvider[]): SensorData => {
+    if (samples.length === 0) {
+        return { ...EMPTY_SENSOR_DATA };
+    }
+
+    const groups = new Map<string, SensorChipGroup>();
+
+    for (const sample of samples) {
+        const category = sample.category ?? SENSOR_KIND_TO_CATEGORY[sample.kind];
+        const chipId = sample.chipId ?? sample.id;
+        const groupKey = `${chipId}:${category}`;
+        const unit = sample.unit ?? SENSOR_KIND_TO_UNIT[sample.kind];
+
+        const reading = {
+            label: sample.label,
+            input: sample.value,
+            min: sample.min,
+            max: sample.max,
+            critical: sample.critical,
+            unit,
+        };
+
+        const existing = groups.get(groupKey);
+        if (existing) {
+            existing.readings.push(reading);
+            continue;
+        }
+
+        const name = sample.chipName ?? chipId;
+        const label = sample.chipLabel ?? name;
+
+        groups.set(groupKey, {
+            id: groupKey,
+            name,
+            label,
+            category,
+            readings: [reading],
+            source: sample.provider,
+        });
+    }
+
+    return { groups: sortGroups(Array.from(groups.values())) };
+};
+
+export const __testing = {
+    aggregateSamples,
+    samplesToSensorData,
 };
 
 export const useSensors = (): UseSensorsResult => {
-    const isMocked = useMockFlag();
-    const [data, setData] = React.useState<SensorData>(EMPTY_SENSOR_DATA);
-    const [isLoading, setIsLoading] = React.useState<boolean>(isMocked);
+    const [state, setState] = React.useState<UseSensorsState>({
+        data: { ...EMPTY_SENSOR_DATA },
+        isLoading: true,
+        status: 'loading',
+    });
+    const [availableProviders, setAvailableProviders] = React.useState<string[]>([]);
+    const [retryToken, setRetryToken] = React.useState(0);
 
     React.useEffect(() => {
-        if (!isMocked) {
-            setData({ ...EMPTY_SENSOR_DATA });
-            setIsLoading(false);
-            return undefined;
-        }
-
         let cancelled = false;
-        let step = 0;
+        let activeProvider: Provider | undefined;
+        let primaryUnsubscribe: (() => void) | undefined;
+        const auxiliaryUnsubscribes: Array<() => void> = [];
+        const samplesByProvider = new Map<string, SensorSample[]>();
 
-        const pushUpdate = () => {
+        const updateState = () => {
             if (cancelled) {
                 return;
             }
 
-            const payload = buildMockPayload(step);
-            step += 1;
-            const parsed = parseSensorsJson(payload);
-            setData(parsed);
-            setIsLoading(false);
+            const aggregated = aggregateSamples(samplesByProvider);
+            setState(prev => {
+                if (prev.status === 'needs-privileges' || prev.status === 'error') {
+                    return prev;
+                }
+
+                if (aggregated.length === 0) {
+                    return {
+                        data: { ...EMPTY_SENSOR_DATA },
+                        isLoading: false,
+                        status: activeProvider ? 'no-data' : 'no-sources',
+                        activeProvider: activeProvider?.name ?? prev.activeProvider,
+                        lastError: prev.lastError,
+                    };
+                }
+
+                const providerName = activeProvider?.name ?? aggregated[0]?.provider;
+
+                return {
+                    data: samplesToSensorData(aggregated),
+                    isLoading: false,
+                    status: 'ready',
+                    activeProvider: providerName,
+                    lastError: undefined,
+                };
+            });
         };
 
-        pushUpdate();
-        const interval = window.setInterval(pushUpdate, MOCK_REFRESH_INTERVAL_MS);
+        const handleProviderError = (provider: Provider, error: ProviderError) => {
+            if (cancelled) {
+                return;
+            }
+
+            if (error.code === 'permission-denied') {
+                setState(prev => ({
+                    data: prev.data,
+                    isLoading: false,
+                    status: 'needs-privileges',
+                    activeProvider: provider.name,
+                    lastError: error.message,
+                }));
+                return;
+            }
+
+            setState(prev => {
+                if (prev.status === 'ready' || prev.status === 'needs-privileges') {
+                    return prev;
+                }
+
+                return {
+                    data: prev.data,
+                    isLoading: false,
+                    status: 'error',
+                    activeProvider: provider.name,
+                    lastError: error.message,
+                };
+            });
+        };
+
+        const startAuxiliaryProviders = async () => {
+            for (const provider of AUXILIARY_PROVIDERS) {
+                try {
+                    const available = await provider.isAvailable();
+                    if (!available) {
+                        continue;
+                    }
+
+                    try {
+                        const unsubscribe = provider.start(samples => {
+                            samplesByProvider.set(provider.name, samples);
+                            updateState();
+                        }, {
+                            onError: error => handleProviderError(provider, error),
+                        });
+
+                        auxiliaryUnsubscribes.push(unsubscribe);
+                        samplesByProvider.set(provider.name, []);
+                        setAvailableProviders(prev => Array.from(new Set([...prev, provider.name])));
+                    } catch (error) {
+                        if (error instanceof ProviderError) {
+                            handleProviderError(provider, error);
+                        }
+                    }
+                } catch (error) {
+                    if (error instanceof ProviderError && error.code === 'permission-denied') {
+                        handleProviderError(provider, error);
+                        return;
+                    }
+                }
+            }
+        };
+
+        const startPrimaryProvider = async (index: number): Promise<void> => {
+            if (index >= PRIMARY_PROVIDERS.length) {
+                updateState();
+                return;
+            }
+
+            const provider = PRIMARY_PROVIDERS[index];
+            try {
+                const available = await provider.isAvailable();
+                if (!available) {
+                    await startPrimaryProvider(index + 1);
+                    return;
+                }
+            } catch (error) {
+                if (error instanceof ProviderError && error.code === 'permission-denied') {
+                    handleProviderError(provider, error);
+                    return;
+                }
+
+                await startPrimaryProvider(index + 1);
+                return;
+            }
+
+            if (cancelled) {
+                return;
+            }
+
+            activeProvider = provider;
+            samplesByProvider.set(provider.name, []);
+            setAvailableProviders(prev => Array.from(new Set([...prev, provider.name])));
+
+            try {
+                primaryUnsubscribe = provider.start(samples => {
+                    samplesByProvider.set(provider.name, samples);
+                    updateState();
+                }, {
+                    onError: error => handleProviderError(provider, error),
+                });
+            } catch (error) {
+                if (error instanceof ProviderError) {
+                    handleProviderError(provider, error);
+                    return;
+                }
+            }
+        };
+
+        void startAuxiliaryProviders();
+        void startPrimaryProvider(0);
 
         return () => {
             cancelled = true;
-            window.clearInterval(interval);
+            primaryUnsubscribe?.();
+            auxiliaryUnsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [isMocked]);
+    }, [retryToken]);
 
-    return { data, isLoading, isMocked };
+    const retry = React.useCallback(() => {
+        setState({
+            data: { ...EMPTY_SENSOR_DATA },
+            isLoading: true,
+            status: 'loading',
+            lastError: undefined,
+        });
+        setAvailableProviders([]);
+        setRetryToken(token => token + 1);
+    }, []);
+
+    return { ...state, availableProviders, retry };
 };

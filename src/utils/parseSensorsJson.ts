@@ -94,6 +94,7 @@ const parseGroup = (raw: unknown, index: number): SensorChipGroup | null => {
     const name = isNonEmptyString(raw.name) ? raw.name.trim() : id;
     const label = isNonEmptyString(raw.label) ? raw.label.trim() : name;
     const category = parseCategory(raw.category);
+    const source = isNonEmptyString(raw.source) ? raw.source.trim() : undefined;
 
     const rawReadings = Array.isArray(raw.readings) ? raw.readings : Array.isArray(raw.values) ? raw.values : [];
 
@@ -105,13 +106,19 @@ const parseGroup = (raw: unknown, index: number): SensorChipGroup | null => {
         return null;
     }
 
-    return {
+    const group: SensorChipGroup = {
         id,
         name,
         label,
         category,
         readings,
     };
+
+    if (source) {
+        group.source = source;
+    }
+
+    return group;
 };
 
 /**
