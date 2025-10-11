@@ -16,7 +16,7 @@ import {
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
-import { DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
+import { ClipboardIcon, DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
 // Use the ESM icon export so React receives the component instead of a CJS wrapper.
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
@@ -236,23 +236,42 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         setExportModalOpen(false);
     }, []);
 
-    const downloadsAllowedInSandbox = React.useCallback(() => {
-        const iframe = window.frameElement as HTMLIFrameElement | null;
-        if (!iframe) {
-            return true;
-        }
-        const sandbox = iframe.getAttribute('sandbox');
-        if (!sandbox) {
-            return true;
-        }
-        return /\ballow-downloads\b/.test(sandbox);
-    }, []);
-
     const copyToClipboard = React.useCallback(async (text: string) => {
         try {
             await navigator.clipboard.writeText(text);
         } catch {
             // If the clipboard API is unavailable, the CSV remains visible for manual copy.
+        }
+    }, []);
+
+    const tryDownloadFromCsv = React.useCallback((csv: string) => {
+        try {
+            const filename = 'sensors-history.csv';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const legacyNavigator = window.navigator as Navigator & {
+                msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => void;
+            };
+
+            if (typeof legacyNavigator.msSaveOrOpenBlob === 'function') {
+                legacyNavigator.msSaveOrOpenBlob(blob, filename);
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            try {
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = filename;
+                anchor.rel = 'noopener';
+                anchor.style.display = 'none';
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+            } finally {
+                setTimeout(() => URL.revokeObjectURL(url), 0);
+            }
+        } catch {
+            // If downloads are not permitted, the CSV remains accessible in the modal.
         }
     }, []);
 
@@ -280,44 +299,9 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
         const csv = buildHistoryCsv(series);
 
-        if (!downloadsAllowedInSandbox()) {
-            setExportCsv(csv);
-            setExportModalOpen(true);
-            void copyToClipboard(csv);
-            return;
-        }
-
-        const filename = 'sensors-history.csv';
-
-        try {
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const legacyNavigator = window.navigator as Navigator & {
-                msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => void;
-            };
-            if (typeof legacyNavigator.msSaveOrOpenBlob === 'function') {
-                legacyNavigator.msSaveOrOpenBlob(blob, filename);
-                return;
-            }
-
-            const url = URL.createObjectURL(blob);
-            try {
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = filename;
-                anchor.rel = 'noopener';
-                anchor.style.display = 'none';
-                document.body.appendChild(anchor);
-                anchor.click();
-                document.body.removeChild(anchor);
-            } finally {
-                setTimeout(() => URL.revokeObjectURL(url), 0);
-            }
-        } catch {
-            setExportCsv(csv);
-            setExportModalOpen(true);
-            void copyToClipboard(csv);
-        }
-    }, [sortedRows, unit, downloadsAllowedInSandbox, copyToClipboard]);
+        setExportCsv(csv);
+        setExportModalOpen(true);
+    }, [sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
         (nextUnit: TemperatureUnit) => {
@@ -482,10 +466,23 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                 title={_('Export CSV')}
                 isOpen={exportModalOpen}
                 onClose={closeExportModal}
-                description={_('Downloads are restricted by the browser sandbox. The CSV is shown below; copy and save it locally as "sensors-history.csv".')}
+                description={_('Downloads may be restricted by the browser sandbox. Copy the CSV below or try to download it.')}
                 actions={[
-                    <Button key="copy" variant="primary" onClick={() => void copyToClipboard(exportCsv)}>
+                    <Button
+                        key="copy"
+                        variant="primary"
+                        icon={<ClipboardIcon />}
+                        onClick={() => void copyToClipboard(exportCsv)}
+                    >
                         {_('Copy')}
+                    </Button>,
+                    <Button
+                        key="download"
+                        variant="secondary"
+                        icon={<DownloadIcon />}
+                        onClick={() => tryDownloadFromCsv(exportCsv)}
+                    >
+                        {_('Try download')}
                     </Button>,
                     <Button key="close" variant="link" onClick={closeExportModal}>
                         {_('Close')}
@@ -497,6 +494,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     clickTip={_('Copied')}
                     variant={ClipboardCopyVariant.expansion}
                     isReadOnly
+                    style={{ maxHeight: 360, overflow: 'auto' }}
                 >
                     {exportCsv}
                 </ClipboardCopy>

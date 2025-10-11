@@ -7,6 +7,7 @@ const createIcon = (name: string) => {
 };
 
 export const DownloadIcon = createIcon('DownloadIcon');
+export const ClipboardIcon = createIcon('ClipboardIcon');
 export const OutlinedStarIcon = createIcon('OutlinedStarIcon');
 export const StarIcon = createIcon('StarIcon');
 export const SearchIcon = createIcon('SearchIcon');
