@@ -21,6 +21,7 @@ export const AlertVariant = { info: 'info', warning: 'warning', danger: 'danger'
 export const Button = ({ children, isDisabled, ...props }: ComponentProps & { isDisabled?: boolean }) =>
     React.createElement('button', { ...props, disabled: isDisabled }, children);
 export const ClipboardCopy = ({ children }: ComponentProps) => React.createElement('pre', null, children);
+export const ClipboardCopyVariant = { expansion: 'expansion' } as const;
 export const Content = createElement('section');
 export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean }) => {
     const { isCompact, ...rest } = props;
@@ -81,6 +82,24 @@ export const Toolbar = createElement('div');
 export const ToolbarContent = createElement('div');
 export const ToolbarGroup = createElement('div');
 export const ToolbarItem = createElement('div');
+
+export const ModalVariant = { medium: 'medium', small: 'small', large: 'large' } as const;
+export const Modal = ({
+    children,
+    isOpen = true,
+    actions,
+    ...props
+}: React.PropsWithChildren<{ isOpen?: boolean; actions?: React.ReactNode[] } & AnyProps>) => {
+    const { onClose, variant, title, description, ...rest } = props;
+    void onClose;
+    void variant;
+    void title;
+    void description;
+    if (!isOpen) {
+        return null;
+    }
+    return React.createElement('div', rest, children, actions);
+};
 
 interface FormSelectProps extends ComponentProps {
     value?: string;
