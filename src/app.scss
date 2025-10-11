@@ -3,6 +3,9 @@
 /* Dark-theme ready: usa tokens PF v6 y NO colores hardcodeados */
 /* Variables de Sensors (se sobreescriben en tema oscuro automáticamente) */
 :root {
+    /* Permite a los controles nativos adoptar dark/light */
+    color-scheme: light dark;
+
     --sensor-sparkline-stroke: var(--pf-v6-global--palette--black-700);
     --sensor-sparkline-axis: var(--pf-v6-global--palette--black-400);
 }
@@ -43,6 +46,11 @@
 
 .pf-c-table {
     width: 100%;
+}
+
+/* Section clara/oscura según PF (no forzar colores fijos) */
+.pf-v6-c-page__main-section {
+    background: var(--pf-v6-global--BackgroundColor--100);
 }
 
 .pf-c-table.pf-m-compact {
