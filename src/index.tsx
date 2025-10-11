@@ -17,7 +17,6 @@
  * along with Cockpit; If not, see <http://www.gnu.org/licenses/>.
  */
 
-import './cockpit-theme';
 import '../vendor/cockpit-page.scss';
 
 import React from 'react';
