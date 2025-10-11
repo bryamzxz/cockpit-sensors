@@ -4,12 +4,21 @@
     --pf-v6-c-page--section--m-width-limited--MaxWidth: none;
 }
 
+// Ensure the sensors table uses the available width while remaining scrollable when needed.
 .pf-c-table-wrapper {
     width: 100%;
     overflow-x: auto;
 }
 
 .pf-c-table {
+    width: 100%;
+}
+
+.pf-c-table.pf-m-compact {
+    min-width: 100%;
+}
+
+.sensor-zero-state {
     width: 100%;
 }
 
