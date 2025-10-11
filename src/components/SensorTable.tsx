@@ -12,7 +12,9 @@ import {
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
-import { DownloadIcon, OutlinedStarIcon, SearchIcon, StarIcon } from '@patternfly/react-icons';
+import { DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
+// Use the ESM icon export so React receives the component instead of a CJS wrapper.
+import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 
 import { Sparkline } from './Sparkline';
@@ -24,7 +26,6 @@ import { buildHistoryCsv, HistorySeries } from '../utils/csv';
 import { getThresholdState } from '../utils/thresholds';
 import { _ } from '../utils/cockpit';
 import type { SensorCategory, SensorChipGroup } from '../types/sensors';
-import { saveTextFile } from '../utils/download';
 
 const MISSING_VALUE = '—';
 
@@ -247,12 +248,30 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         }
 
         const csv = buildHistoryCsv(series);
-        const now = new Date();
-        const stamp =
-            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` +
-            `_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-        const filename = `cockpit-sensors_${stamp}.csv`;
-        saveTextFile(filename, csv, 'text/csv;charset=utf-8');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const filename = 'sensors-history.csv';
+
+        const legacyNavigator = window.navigator as Navigator & {
+            msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => void;
+        };
+        if (typeof legacyNavigator.msSaveOrOpenBlob === 'function') {
+            legacyNavigator.msSaveOrOpenBlob(blob, filename);
+            return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        try {
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            anchor.rel = 'noopener';
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+        }
     }, [sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
@@ -338,7 +357,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             {sortedRows.length === 0 ? (
                 <div className="sensor-zero-state">
                     <EmptyState variant="sm">
-                        <EmptyStateHeader icon={<SearchIcon />} titleText={zeroState.title} headingLevel="h3" />
+                        <EmptyStateHeader icon={SearchIcon} titleText={zeroState.title} headingLevel="h3" />
                         <EmptyStateBody>{zeroState.description}</EmptyStateBody>
                     </EmptyState>
                 </div>
