@@ -130,7 +130,7 @@ const context = await esbuild.context({
     ...(!production ? { sourcemap: 'linked' } : {}),
     bundle: true,
     entryPoints: ['./src/index.tsx'],
-    external: ['cockpit', 'cockpit-dark-theme', '*.woff', '*.woff2', '*.jpg', '*.svg', '../../assets*'],
+    external: ['cockpit', '*.woff', '*.woff2', '*.jpg', '*.svg', '../../assets*'],
     define: {
         'import.meta.env': `globalThis.${importMetaEnvGlobalRef}`,
     },

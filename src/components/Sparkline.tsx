@@ -10,7 +10,7 @@ export interface SparklineProps {
 
 export const Sparkline: React.FC<SparklineProps> = ({ data, width = 140, height = 32 }) => {
     if (!data.length) {
-        return <svg role="img" width={width} height={height} aria-hidden="true" />;
+        return <svg role="img" className="sensor-sparkline" width={width} height={height} aria-hidden="true" />;
     }
 
     const values = data.map(sample => sample.v);
@@ -28,8 +28,14 @@ export const Sparkline: React.FC<SparklineProps> = ({ data, width = 140, height 
             .join(' ');
 
     return (
-        <svg role="img" width={width} height={height} aria-hidden="true">
-            <polyline fill="none" stroke="currentColor" strokeWidth={1} points={points} vectorEffect="non-scaling-stroke" />
+        <svg role="img" className="sensor-sparkline" width={width} height={height} aria-hidden="true">
+            <polyline
+                fill="none"
+                stroke="var(--sensor-sparkline-stroke)"
+                strokeWidth={1}
+                points={points}
+                vectorEffect="non-scaling-stroke"
+            />
         </svg>
     );
 };

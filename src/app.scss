@@ -1,5 +1,32 @@
 @use "page";
 
+/* Dark-theme ready: usa tokens PF v6 y NO colores hardcodeados */
+/* Variables de Sensors (se sobreescriben en tema oscuro automáticamente) */
+:root {
+    --sensor-sparkline-stroke: var(--pf-v6-global--palette--black-700);
+    --sensor-sparkline-axis: var(--pf-v6-global--palette--black-400);
+}
+
+.pf-v6-theme-dark {
+    --sensor-sparkline-stroke: var(--pf-v6-global--palette--white-700);
+    --sensor-sparkline-axis: var(--pf-v6-global--palette--white-500);
+}
+
+.sensor-sparkline {
+    display: inline-block;
+    width: 140px;
+    height: 28px;
+}
+
+.sensor-sparkline path {
+    stroke: var(--sensor-sparkline-stroke);
+}
+
+.sensor-sparkline .axis {
+    stroke: var(--sensor-sparkline-axis);
+    opacity: .3;
+}
+
 .sensor-page {
     --pf-v6-c-page--section--m-width-limited--MaxWidth: none;
 }
