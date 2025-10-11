@@ -42,6 +42,7 @@ import { useSensorPreferences } from '../hooks/useSensorPreferences';
 import { SensorCategory } from '../types/sensors';
 import { groupsForCategory } from '../utils/grouping';
 import { _ } from '../utils/cockpit';
+import { syncWithParentPatternflyTheme } from '../lib/syncTheme';
 
 import '../app.scss';
 
@@ -84,6 +85,10 @@ const TABS: readonly TabDefinition[] = [
 ];
 
 export const Application: React.FC = () => {
+    React.useEffect(() => {
+        return syncWithParentPatternflyTheme();
+    }, []);
+
     const [activeKey, setActiveKey] = React.useState<number>(TABS[0].eventKey);
     const { unit, setUnit, refreshMs, setRefreshMs, pinned, togglePinned } = useSensorPreferences();
     const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors(refreshMs);
