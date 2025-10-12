@@ -1,27 +1,24 @@
 import React from 'react';
 import {
     Button,
-    ClipboardCopy,
-    ClipboardCopyVariant,
     EmptyState,
     EmptyStateBody,
     FormSelect,
     FormSelectOption,
     Label,
-    Modal,
-    ModalVariant,
     Toolbar,
     ToolbarContent,
     ToolbarGroup,
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
-import { ClipboardIcon, DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
+import { DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
 // Use the ESM icon export so React receives the component instead of a CJS wrapper.
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 
 import { Sparkline } from './Sparkline';
+import { CsvModalViewer } from './CsvModalViewer';
 import { calcStats, pushSample, Sample } from '../lib/history';
 import type { TemperatureUnit } from '../hooks/useSensorPreferences';
 import { SENSOR_REFRESH_OPTIONS } from '../hooks/useSensorPreferences';
@@ -42,6 +39,12 @@ type TableRow = {
     input: number;
     source?: string;
     reading: SensorChipGroup['readings'][number];
+};
+
+type CsvState = {
+    open: boolean;
+    text: string;
+    filename: string;
 };
 
 interface PreparedRow extends TableRow {
@@ -229,24 +232,14 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         [onRefreshChange, refreshMs],
     );
 
-    const [exportModalOpen, setExportModalOpen] = React.useState(false);
-    const [exportCsv, setExportCsv] = React.useState('');
+    const [csvView, setCsvView] = React.useState<CsvState>({ open: false, text: '', filename: '' });
 
-    const closeExportModal = React.useCallback(() => {
-        setExportModalOpen(false);
+    const closeCsvModal = React.useCallback(() => {
+        setCsvView({ open: false, text: '', filename: '' });
     }, []);
 
-    const copyToClipboard = React.useCallback(async (text: string) => {
+    const attemptDownload = React.useCallback((csv: string, filename: string) => {
         try {
-            await navigator.clipboard.writeText(text);
-        } catch {
-            // If the clipboard API is unavailable, the CSV remains visible for manual copy.
-        }
-    }, []);
-
-    const tryDownloadFromCsv = React.useCallback((csv: string) => {
-        try {
-            const filename = 'sensors-history.csv';
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
             const legacyNavigator = window.navigator as Navigator & {
                 msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => void;
@@ -254,7 +247,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
             if (typeof legacyNavigator.msSaveOrOpenBlob === 'function') {
                 legacyNavigator.msSaveOrOpenBlob(blob, filename);
-                return;
+                return true;
             }
 
             const url = URL.createObjectURL(blob);
@@ -270,10 +263,24 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             } finally {
                 setTimeout(() => URL.revokeObjectURL(url), 0);
             }
+
+            return true;
         } catch {
-            // If downloads are not permitted, the CSV remains accessible in the modal.
+            return false;
         }
     }, []);
+
+    const retryDownload = React.useCallback(() => {
+        if (!csvView.text) {
+            return;
+        }
+
+        const fallbackName = csvView.filename || `cockpit-sensors-${Date.now()}.csv`;
+        const downloaded = attemptDownload(csvView.text, fallbackName);
+        if (downloaded) {
+            closeCsvModal();
+        }
+    }, [attemptDownload, closeCsvModal, csvView]);
 
     const handleExport = React.useCallback(() => {
         const history = historyRef.current;
@@ -298,10 +305,15 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         }
 
         const csv = buildHistoryCsv(series);
+        const isoString = new Date().toISOString();
+        const timestamp = isoString.replace(/[:.]/g, '-');
+        const filename = `cockpit-sensors-${timestamp}.csv`;
 
-        setExportCsv(csv);
-        setExportModalOpen(true);
-    }, [sortedRows, unit]);
+        const downloaded = attemptDownload(csv, filename);
+        if (!downloaded) {
+            setCsvView({ open: true, text: csv, filename });
+        }
+    }, [attemptDownload, sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
         (nextUnit: TemperatureUnit) => {
@@ -383,6 +395,14 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                 </ToolbarContent>
             </Toolbar>
 
+            <CsvModalViewer
+                isOpen={csvView.open}
+                text={csvView.text}
+                filename={csvView.filename}
+                onClose={closeCsvModal}
+                onRetryDownload={csvView.text ? retryDownload : undefined}
+            />
+
             {sortedRows.length === 0 ? (
                 <div className="sensor-zero-state">
                     <EmptyState variant="sm">
@@ -461,44 +481,6 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     </table>
                 </div>
             )}
-            <Modal
-                variant={ModalVariant.medium}
-                title={_('Export CSV')}
-                isOpen={exportModalOpen}
-                onClose={closeExportModal}
-                description={_('Downloads may be restricted by the browser sandbox. Copy the CSV below or try to download it.')}
-                actions={[
-                    <Button
-                        key="copy"
-                        variant="primary"
-                        icon={<ClipboardIcon />}
-                        onClick={() => void copyToClipboard(exportCsv)}
-                    >
-                        {_('Copy')}
-                    </Button>,
-                    <Button
-                        key="download"
-                        variant="secondary"
-                        icon={<DownloadIcon />}
-                        onClick={() => tryDownloadFromCsv(exportCsv)}
-                    >
-                        {_('Try download')}
-                    </Button>,
-                    <Button key="close" variant="link" onClick={closeExportModal}>
-                        {_('Close')}
-                    </Button>,
-                ]}
-            >
-                <ClipboardCopy
-                    hoverTip={_('Copy')}
-                    clickTip={_('Copied')}
-                    variant={ClipboardCopyVariant.expansion}
-                    isReadOnly
-                    style={{ maxHeight: 360, overflow: 'auto' }}
-                >
-                    {exportCsv}
-                </ClipboardCopy>
-            </Modal>
         </div>
     );
 };
