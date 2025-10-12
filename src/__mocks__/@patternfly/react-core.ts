@@ -22,6 +22,9 @@ export const Button = ({ children, isDisabled, ...props }: ComponentProps & { is
     React.createElement('button', { ...props, disabled: isDisabled }, children);
 export const ClipboardCopy = ({ children }: ComponentProps) => React.createElement('pre', null, children);
 export const ClipboardCopyVariant = { expansion: 'expansion' } as const;
+export const CodeBlock = createElement('pre');
+export const CodeBlockCode = ({ children, ...props }: ComponentProps) =>
+    React.createElement('code', props, children);
 export const Content = createElement('section');
 export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean }) => {
     const { isCompact, ...rest } = props;

@@ -276,11 +276,8 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         }
 
         const fallbackName = csvView.filename || `cockpit-sensors-${Date.now()}.csv`;
-        const downloaded = attemptDownload(csvView.text, fallbackName);
-        if (downloaded) {
-            closeCsvModal();
-        }
-    }, [attemptDownload, closeCsvModal, csvView]);
+        attemptDownload(csvView.text, fallbackName);
+    }, [attemptDownload, csvView]);
 
     const handleExport = React.useCallback(() => {
         const history = historyRef.current;
@@ -309,10 +306,8 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         const timestamp = isoString.replace(/[:.]/g, '-');
         const filename = `cockpit-sensors-${timestamp}.csv`;
 
-        const downloaded = attemptDownload(csv, filename);
-        if (!downloaded) {
-            setCsvView({ open: true, text: csv, filename });
-        }
+        attemptDownload(csv, filename);
+        setCsvView({ open: true, text: csv, filename });
     }, [attemptDownload, sortedRows, unit]);
 
     const handleUnitToggle = React.useCallback(
