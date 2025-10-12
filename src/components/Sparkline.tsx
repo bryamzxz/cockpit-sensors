@@ -1,4 +1,5 @@
 import React from 'react';
+import './Sparkline.scss';
 
 import type { Sample } from '../lib/history';
 
@@ -29,13 +30,7 @@ export const Sparkline: React.FC<SparklineProps> = ({ data, width = 140, height 
 
     return (
         <svg role="img" className="sensor-sparkline" width={width} height={height} aria-hidden="true">
-            <polyline
-                fill="none"
-                stroke="var(--sensor-sparkline-stroke)"
-                strokeWidth={1}
-                points={points}
-                vectorEffect="non-scaling-stroke"
-            />
+            <polyline points={points} vectorEffect="non-scaling-stroke" />
         </svg>
     );
 };
