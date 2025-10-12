@@ -1,0 +1,26 @@
+/* Sparkline listo para tema claro/oscuro (PatternFly v6) */
+.sensor-sparkline {
+    display: block;
+    background: transparent;            /* nada de fondo negro/blanco */
+    color: var(--sensor-sparkline-stroke);
+}
+
+/* El trazo de la serie hereda el color (currentColor) */
+.sensor-sparkline path,
+.sensor-sparkline polyline {
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+/* Eje/base del sparkline (si se dibuja) */
+.sensor-sparkline line.axis,
+.sensor-sparkline .axis {
+    stroke: var(--sensor-sparkline-axis);
+}
+
+/* Por si hay un rectángulo de fondo en el SVG */
+.sensor-sparkline .bg {
+    fill: transparent;
+}
