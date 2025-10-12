@@ -1,0 +1,34 @@
+/* Modal grande y cómodo para ver/copiar el CSV */
+.csv-modal {
+  /* Modal PF v6 (prefijos pueden variar entre distros); apuntamos a la caja */
+  [class*="pf-c-modal-box"] {
+    max-width: min(1100px, 96vw);
+    width: auto;
+  }
+}
+
+.csv-modal__body {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.csv-modal__filename {
+  margin-bottom: .5rem;
+  font-size: var(--pf-v6-global--FontSize--sm, 0.875rem);
+  color: var(--pf-v6-global--Color--200, #6a6e73);
+  word-break: break-all;
+}
+
+.csv-modal pre,
+.csv-modal code {
+  white-space: pre;
+  font-family: var(--pf-v6-global--FontFamily--monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
+  background: transparent;
+}
+
+.csv-modal__actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
