@@ -246,7 +246,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
                 } catch (error) {
                     if (error instanceof ProviderError && error.code === 'permission-denied') {
                         handleProviderError(provider, error);
-                        return;
+                        continue;
                     }
                 }
             }
