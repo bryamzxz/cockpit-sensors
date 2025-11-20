@@ -188,6 +188,7 @@ const collectGroupSamples = (
     groupValue: Record<string, unknown>,
 ): SensorSample[] => {
     const samples: SensorSample[] = [];
+    let emitted = false;
 
     for (const [featureKey, featureValue] of Object.entries(groupValue)) {
         if (!featureKey.endsWith(INPUT_SUFFIX)) {
@@ -195,6 +196,26 @@ const collectGroupSamples = (
         }
 
         const sample = buildSample(chipId, chipLabel, groupKey, featureKey, featureValue, groupValue);
+        if (sample) {
+            samples.push(sample);
+            emitted = true;
+        }
+    }
+
+    // sensors -j may expose feature blocks as objects that only contain an `input` field
+    // (e.g. { fan1: { input: 2900 } }). In that case the actual key describing the feature
+    // is carried by the parent, so generate the synthetic *_input name required by
+    // buildSample to preserve consistent base key parsing.
+    if (!emitted && 'input' in groupValue) {
+        const sample = buildSample(
+            chipId,
+            chipLabel,
+            groupKey,
+            `${groupKey}${INPUT_SUFFIX}`,
+            groupValue.input,
+            groupValue,
+        );
+
         if (sample) {
             samples.push(sample);
         }

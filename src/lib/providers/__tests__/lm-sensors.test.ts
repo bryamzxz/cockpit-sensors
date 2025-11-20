@@ -40,4 +40,28 @@ describe('normalizeLmSensors', () => {
         expect(mt7921Sample?.label.toLowerCase()).toContain('temp1');
         expect(mt7921Sample?.value).toBeCloseTo(30);
     });
+
+    it('supports feature groups that expose only an input value', () => {
+        const payload = {
+            'thinkpad-isa-0000': {
+                Adapter: 'ISA adapter',
+                fan1: {
+                    input: 3069,
+                    min: 2000,
+                },
+                in0: {
+                    input: 1.032,
+                    crit: 1.5,
+                },
+                temp1: {
+                    input: 44.0,
+                },
+            },
+        };
+
+        const samples = normalizeLmSensors(payload);
+        expect(samples.find(sample => sample.kind === 'fan')?.value).toBeCloseTo(3069);
+        expect(samples.find(sample => sample.kind === 'volt')?.value).toBeCloseTo(1.032);
+        expect(samples.find(sample => sample.kind === 'temp')?.value).toBeCloseTo(44);
+    });
 });
