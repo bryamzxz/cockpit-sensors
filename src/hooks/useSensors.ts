@@ -5,6 +5,7 @@ import { DEFAULT_SENSOR_REFRESH_MS } from './useSensorPreferences';
 import { hwmonProvider } from '../lib/providers/hwmon';
 import { lmSensorsProvider } from '../lib/providers/lm-sensors';
 import { nvmeProvider } from '../lib/providers/nvme';
+import { powercapProvider } from '../lib/providers/powercap';
 import {
     Provider,
     ProviderError,
@@ -35,7 +36,7 @@ export interface UseSensorsResult extends UseSensorsState {
 }
 
 const PRIMARY_PROVIDERS: Provider[] = [hwmonProvider, lmSensorsProvider];
-const AUXILIARY_PROVIDERS: Provider[] = [nvmeProvider];
+const AUXILIARY_PROVIDERS: Provider[] = [powercapProvider, nvmeProvider];
 const AUXILIARY_PROVIDER_NAMES = new Set(AUXILIARY_PROVIDERS.map(provider => provider.name));
 const AGGREGATION_ORDER = PRIMARY_PROVIDERS.concat(AUXILIARY_PROVIDERS).map(provider => provider.name);
 
@@ -245,7 +246,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
                 } catch (error) {
                     if (error instanceof ProviderError && error.code === 'permission-denied') {
                         handleProviderError(provider, error);
-                        return;
+                        continue;
                     }
                 }
             }
