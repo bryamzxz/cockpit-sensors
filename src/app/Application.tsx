@@ -76,9 +76,15 @@ const TABS: readonly TabDefinition[] = [
     },
     {
         eventKey: 3,
+        title: _('Watts'),
+        description: _('Track system and package power usage as reported by available RAPL interfaces.'),
+        category: 'power',
+    },
+    {
+        eventKey: 4,
         title: _('Other sensors'),
         description: _(
-            'Access readings for sensors that are not recognised as temperature, fan, or voltage devices.'
+            'Access readings for sensors that are not recognised as temperature, fan, voltage, or power devices.'
         ),
         category: 'unknown',
     },

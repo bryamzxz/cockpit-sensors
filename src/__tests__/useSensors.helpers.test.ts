@@ -57,6 +57,18 @@ describe('useSensors helpers', () => {
                 unit: SENSOR_KIND_TO_UNIT.volt,
             },
             {
+                provider: 'powercap',
+                kind: 'power',
+                id: 'package-0:power',
+                label: 'Package-0',
+                value: 28.3,
+                chipId: 'package-0',
+                chipLabel: 'Package 0',
+                chipName: 'intel-rapl:0',
+                unit: SENSOR_KIND_TO_UNIT.power,
+                category: 'power',
+            },
+            {
                 provider: 'nvme',
                 kind: 'temp',
                 id: '/dev/nvme0:temperature',
@@ -69,7 +81,7 @@ describe('useSensors helpers', () => {
         ];
 
         const data = samplesToSensorData(samples);
-        expect(data.groups).toHaveLength(3);
+        expect(data.groups).toHaveLength(4);
 
         const cpuTemperature = data.groups.find(group => group.id === 'chip0:temperature');
         expect(cpuTemperature).toMatchObject({
@@ -82,6 +94,9 @@ describe('useSensors helpers', () => {
 
         const cpuVoltage = data.groups.find(group => group.id === 'chip0:voltage');
         expect(cpuVoltage?.readings[0]).toMatchObject({ label: '+12V', unit: SENSOR_KIND_TO_UNIT.volt });
+
+        const packagePower = data.groups.find(group => group.category === 'power');
+        expect(packagePower?.readings[0]).toMatchObject({ label: 'Package-0', unit: SENSOR_KIND_TO_UNIT.power });
 
         const nvmeGroup = data.groups.find(group => group.id?.startsWith('/dev/nvme0'));
         expect(nvmeGroup).toMatchObject({ source: 'nvme' });
