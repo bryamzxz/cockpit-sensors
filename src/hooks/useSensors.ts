@@ -37,7 +37,6 @@ export interface UseSensorsResult extends UseSensorsState {
 
 const PRIMARY_PROVIDERS: Provider[] = [hwmonProvider, lmSensorsProvider];
 const AUXILIARY_PROVIDERS: Provider[] = [powercapProvider, nvmeProvider];
-const AUXILIARY_PROVIDER_NAMES = new Set(AUXILIARY_PROVIDERS.map(provider => provider.name));
 const AGGREGATION_ORDER = PRIMARY_PROVIDERS.concat(AUXILIARY_PROVIDERS).map(provider => provider.name);
 
 const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): SampleWithProvider[] => {
