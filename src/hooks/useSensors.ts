@@ -142,7 +142,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
 
             const aggregated = aggregateSamples(samplesByProvider);
             setState(prev => {
-                if (prev.status === 'needs-privileges' || prev.status === 'error') {
+                if (prev.status === 'error') {
                     return prev;
                 }
 
