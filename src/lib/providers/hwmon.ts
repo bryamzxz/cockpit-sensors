@@ -49,11 +49,17 @@ const parseNumber = (value: string | null | undefined): number | undefined => {
 
 const readFile = async (cockpitInstance: Cockpit, path: string): Promise<string | null> => {
     try {
-        const handle = cockpitInstance.file(path);
+        const handle = cockpitInstance.file(path, { superuser: 'require' });
         const content = await handle.read();
         handle.close();
         return content;
-    } catch {
+    } catch (error) {
+        if (isPermissionDenied(error)) {
+            throw new ProviderError('Permission denied while reading hwmon data', 'permission-denied', {
+                cause: error instanceof Error ? error : undefined,
+            });
+        }
+
         return null;
     }
 };
@@ -87,7 +93,7 @@ const isPermissionDenied = (error: unknown): boolean => {
 
 const spawnText = async (cockpitInstance: Cockpit, command: string[] | string): Promise<string> => {
     try {
-        return await cockpitInstance.spawn(command, { superuser: 'try', err: 'out' });
+        return await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
     } catch (error) {
         if (isPermissionDenied(error)) {
             throw new ProviderError('Permission denied while reading hwmon data', 'permission-denied', {
@@ -358,7 +364,7 @@ export class HwmonProvider implements Provider {
                         sensor.max = await readNumberFile(cockpitInstance, sensor.maxPath, sensor.scale);
                         sensor.critical = await readNumberFile(cockpitInstance, sensor.critPath, sensor.scale);
 
-                        const handle = cockpitInstance.file(sensor.inputPath);
+                        const handle = cockpitInstance.file(sensor.inputPath, { superuser: 'require' });
                         const stop = handle.watch(content => {
                             if (disposed) {
                                 return;

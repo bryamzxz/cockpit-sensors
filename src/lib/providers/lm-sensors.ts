@@ -110,7 +110,7 @@ const prettifyLabel = (label: string): string => {
 
 const readSensorsJson = async (cockpitInstance: Cockpit): Promise<unknown> => {
     try {
-        const output = await cockpitInstance.spawn(['sensors', '-jA'], { superuser: 'try', err: 'out' });
+        const output = await cockpitInstance.spawn(['sensors', '-jA'], { superuser: 'require', err: 'out' });
         const trimmed = output.trim();
         if (!trimmed) {
             return {};
