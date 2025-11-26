@@ -42,6 +42,15 @@ const SAMPLE: SensorSample[] = [
     },
 ];
 
+const UPDATED_SAMPLE: SensorSample[] = [
+    {
+        kind: 'temp',
+        id: 'chip0:temp1',
+        label: 'Core 0',
+        value: 45,
+    },
+];
+
 describe('useSensors permission handling', () => {
     beforeEach(() => {
         vi.useRealTimers();
@@ -64,25 +73,52 @@ describe('useSensors permission handling', () => {
         nvmeProviderMock.isAvailable.mockReset();
         nvmeProviderMock.start.mockReset();
         nvmeProviderMock.isAvailable.mockResolvedValue(true);
-        nvmeProviderMock.start.mockImplementation(() => {
-            throw new ProviderError('nvme requires privileges', 'permission-denied');
+        nvmeProviderMock.start.mockImplementation((_onChange, context) => {
+            context?.onError?.(new ProviderError('nvme requires privileges', 'permission-denied'));
+            return () => {};
         });
     });
 
     afterEach(() => {
         vi.clearAllMocks();
+        vi.useRealTimers();
     });
 
-    it('keeps ready state when auxiliary providers require privileges', async () => {
+    it('surfaces privilege requirement even when auxiliary providers fail', async () => {
         const { useSensors } = await import('../hooks/useSensors');
         const { result } = renderHook(() => useSensors());
 
         await waitFor(() => {
-            expect(result.current.status).toBe('ready');
+            expect(result.current.status).toBe('needs-privileges');
         });
 
         expect(result.current.data.groups).not.toHaveLength(0);
-        expect(result.current.status).toBe('ready');
+        expect(result.current.status).toBe('needs-privileges');
         expect(result.current.availableProviders).toContain('hwmon');
+        expect(result.current.lastError).toContain('nvme requires privileges');
+    });
+
+    it('continues updating sensor data after an auxiliary permission error', async () => {
+        hwmonProviderMock.start.mockImplementation(onChange => {
+            onChange(SAMPLE);
+            setTimeout(() => onChange(UPDATED_SAMPLE), 100);
+            return () => {};
+        });
+
+        const { useSensors } = await import('../hooks/useSensors');
+
+        const { result } = renderHook(() => useSensors());
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('needs-privileges');
+            expect(result.current.data.groups[0]?.readings[0]?.input).toBe(42);
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        await waitFor(() => {
+            expect(result.current.data.groups[0]?.readings[0]?.input).toBe(45);
+            expect(result.current.status).toBe('needs-privileges');
+        });
     });
 });
