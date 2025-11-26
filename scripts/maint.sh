@@ -9,11 +9,15 @@ log() {
   echo "[maint] $1"
 }
 
-if [ -d "${COCKPIT_DIR}" ]; then
-  log "Fetching updates in ${COCKPIT_DIR}"
+if [ -d "${COCKPIT_DIR}/.git" ]; then
+  log "Fetching updates in ${COCKPIT_DIR}" 
   git -C "${COCKPIT_DIR}" fetch --all --prune
 else
-  log "Cockpit repository not found at ${COCKPIT_DIR}; skipping fetch"
+  if [ -d "${COCKPIT_DIR}" ]; then
+    log "Cockpit repository exists but is not a git checkout; skipping fetch"
+  else
+    log "Cockpit repository not found at ${COCKPIT_DIR}; skipping fetch"
+  fi
 fi
 
 PKG_TARGET="${COCKPIT_DIR}/pkg"
@@ -36,11 +40,16 @@ else
   fi
 fi
 
-if [ "${PACKAGE_LOCK_CHANGED}" = true ]; then
-  log "package-lock.json changed; running npm ci"
+DEPENDENCIES_STALE=${PACKAGE_LOCK_CHANGED}
+if [ ! -d "${PROJECT_ROOT}/node_modules" ]; then
+  DEPENDENCIES_STALE=true
+fi
+
+if [ "${DEPENDENCIES_STALE}" = true ]; then
+  log "Installing dependencies via npm ci"
   npm ci
 else
-  log "package-lock.json unchanged; running npm prune && npm rebuild"
+  log "package-lock.json unchanged and node_modules present; running npm prune && npm rebuild"
   npm prune
   npm rebuild
 fi

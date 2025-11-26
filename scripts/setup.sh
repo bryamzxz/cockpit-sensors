@@ -9,7 +9,12 @@ log() {
   echo "[setup] $1"
 }
 
-log "Preparing Cockpit checkout at ${COCKPIT_DIR}".
+log "Preparing Cockpit checkout at ${COCKPIT_DIR}". 
+if [ -d "${COCKPIT_DIR}" ] && [ ! -d "${COCKPIT_DIR}/.git" ]; then
+  log "Existing path at ${COCKPIT_DIR} is not a git checkout; replacing with fresh clone"
+  rm -rf "${COCKPIT_DIR}"
+fi
+
 if [ ! -d "${COCKPIT_DIR}" ]; then
   log "Cloning cockpit repository (depth=1)"
   git clone --depth=1 https://github.com/cockpit-project/cockpit.git "${COCKPIT_DIR}"
