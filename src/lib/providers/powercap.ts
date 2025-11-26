@@ -52,7 +52,7 @@ const parseNumber = (value: string | null | undefined): number | undefined => {
 
 const spawnText = async (cockpitInstance: Cockpit, command: string[] | string): Promise<string> => {
     try {
-        return await cockpitInstance.spawn(command, { superuser: 'try', err: 'out' });
+        return await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
     } catch (error) {
         if (isPermissionDenied(error)) {
             throw new ProviderError('Permission denied while reading powercap data', 'permission-denied', {
@@ -68,7 +68,7 @@ const spawnText = async (cockpitInstance: Cockpit, command: string[] | string): 
 
 const readFile = async (cockpitInstance: Cockpit, path: string): Promise<string | null> => {
     try {
-        const handle = cockpitInstance.file(path);
+        const handle = cockpitInstance.file(path, { superuser: 'require' });
         const content = await handle.read();
         handle.close();
         return content;

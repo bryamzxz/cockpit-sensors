@@ -58,7 +58,7 @@ const isCommandMissing = (error: unknown): boolean => {
 
 const runJsonCommand = async (cockpitInstance: Cockpit, command: string[]): Promise<unknown> => {
     try {
-        const output = await cockpitInstance.spawn(command, { superuser: 'try', err: 'out' });
+        const output = await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
         const trimmed = output.trim();
         if (!trimmed) {
             return {};
