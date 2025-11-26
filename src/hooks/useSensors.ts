@@ -134,6 +134,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
         let primaryUnsubscribe: (() => void) | undefined;
         const auxiliaryUnsubscribes: Array<() => void> = [];
         const samplesByProvider = new Map<string, SensorSample[]>();
+        const permissionDeniedRef = { current: false } as React.MutableRefObject<boolean>;
 
         const updateState = () => {
             if (cancelled) {
@@ -158,12 +159,14 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
 
                 const providerName = activeProvider?.name ?? aggregated[0]?.provider;
 
+                const hasPermissionError = permissionDeniedRef.current || prev.status === 'needs-privileges';
+
                 return {
                     data: samplesToSensorData(aggregated),
                     isLoading: false,
-                    status: 'ready',
+                    status: hasPermissionError ? 'needs-privileges' : 'ready',
                     activeProvider: providerName,
-                    lastError: undefined,
+                    lastError: hasPermissionError ? prev.lastError : undefined,
                 };
             });
         };
@@ -174,27 +177,16 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
             }
 
             if (error.code === 'permission-denied') {
-                if (AUXILIARY_PROVIDER_NAMES.has(provider.name)) {
-                    const aggregated = aggregateSamples(samplesByProvider);
-                    if (aggregated.length > 0) {
-                        const providerName = activeProvider?.name ?? aggregated[0]?.provider;
+                permissionDeniedRef.current = true;
 
-                        setState(prev => ({
-                            data: samplesToSensorData(aggregated),
-                            isLoading: false,
-                            status: 'ready',
-                            activeProvider: prev.activeProvider ?? providerName,
-                            lastError: error.message,
-                        }));
-                        return;
-                    }
-                }
+                const aggregated = aggregateSamples(samplesByProvider);
+                const providerName = activeProvider?.name ?? aggregated[0]?.provider ?? provider.name;
 
                 setState(prev => ({
-                    data: prev.data,
+                    data: aggregated.length > 0 ? samplesToSensorData(aggregated) : prev.data,
                     isLoading: false,
                     status: 'needs-privileges',
-                    activeProvider: provider.name,
+                    activeProvider: prev.activeProvider ?? providerName,
                     lastError: error.message,
                 }));
                 return;

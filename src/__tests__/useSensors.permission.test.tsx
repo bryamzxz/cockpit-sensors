@@ -64,8 +64,9 @@ describe('useSensors permission handling', () => {
         nvmeProviderMock.isAvailable.mockReset();
         nvmeProviderMock.start.mockReset();
         nvmeProviderMock.isAvailable.mockResolvedValue(true);
-        nvmeProviderMock.start.mockImplementation(() => {
-            throw new ProviderError('nvme requires privileges', 'permission-denied');
+        nvmeProviderMock.start.mockImplementation((_onChange, context) => {
+            context?.onError?.(new ProviderError('nvme requires privileges', 'permission-denied'));
+            return () => {};
         });
     });
 
@@ -73,16 +74,17 @@ describe('useSensors permission handling', () => {
         vi.clearAllMocks();
     });
 
-    it('keeps ready state when auxiliary providers require privileges', async () => {
+    it('surfaces privilege requirement even when auxiliary providers fail', async () => {
         const { useSensors } = await import('../hooks/useSensors');
         const { result } = renderHook(() => useSensors());
 
         await waitFor(() => {
-            expect(result.current.status).toBe('ready');
+            expect(result.current.status).toBe('needs-privileges');
         });
 
         expect(result.current.data.groups).not.toHaveLength(0);
-        expect(result.current.status).toBe('ready');
+        expect(result.current.status).toBe('needs-privileges');
         expect(result.current.availableProviders).toContain('hwmon');
+        expect(result.current.lastError).toContain('nvme requires privileges');
     });
 });
