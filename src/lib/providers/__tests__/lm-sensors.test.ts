@@ -64,4 +64,24 @@ describe('normalizeLmSensors', () => {
         expect(samples.find(sample => sample.kind === 'volt')?.value).toBeCloseTo(1.032);
         expect(samples.find(sample => sample.kind === 'temp')?.value).toBeCloseTo(44);
     });
+
+    it('classifies power inputs as power sensors', () => {
+        const payload = {
+            'nct6775-isa-0290': {
+                Adapter: 'ISA adapter',
+                power1: {
+                    power1_input: 4.5,
+                    power1_label: 'CPU Package',
+                },
+            },
+        };
+
+        const samples = normalizeLmSensors(payload);
+        const powerSample = samples.find(sample => sample.kind === 'power');
+
+        expect(powerSample?.label).toBe('CPU Package');
+        expect(powerSample?.value).toBeCloseTo(4.5);
+        expect(powerSample?.category).toBe('power');
+        expect(powerSample?.unit).toBe('W');
+    });
 });

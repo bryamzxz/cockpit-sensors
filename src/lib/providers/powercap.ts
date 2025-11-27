@@ -6,6 +6,7 @@ const POWERCAP_ROOT = '/sys/class/powercap';
 const MICRO_UNITS_PER_WATT = 1_000_000;
 const DEFAULT_REFRESH_MS = 3000;
 const MIN_REFRESH_MS = 500;
+const RAPL_FIND_EXPRESSION = '\\( -name "*-rapl:*" -o -name "rapl:*" \\)';
 
 interface RaplDomainState {
     id: string;
@@ -164,7 +165,7 @@ const listRaplDomains = async (cockpitInstance: Cockpit): Promise<RaplDomainStat
     const rawList = await spawnText(cockpitInstance, [
         'sh',
         '-c',
-        `find ${POWERCAP_ROOT} -maxdepth 3 -type d -name "intel-rapl:*" 2>/dev/null`,
+        `find ${POWERCAP_ROOT} -maxdepth 3 -type d ${RAPL_FIND_EXPRESSION} 2>/dev/null`,
     ]).catch(error => {
         if (error instanceof ProviderError && error.code === 'unexpected') {
             return '';
@@ -216,7 +217,7 @@ export class PowercapProvider implements Provider {
         const output = await spawnText(cockpitInstance, [
             'sh',
             '-c',
-            `find ${POWERCAP_ROOT} -maxdepth 1 -type d -name "intel-rapl:*" -print -quit 2>/dev/null`,
+            `find ${POWERCAP_ROOT} -maxdepth 1 -type d ${RAPL_FIND_EXPRESSION} -print -quit 2>/dev/null`,
         ]).catch(error => {
             if (error instanceof ProviderError && error.code === 'unexpected') {
                 return '';

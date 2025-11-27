@@ -89,6 +89,8 @@ const sensorKindForKey = (key: string): SensorKind => {
         case 'vin':
         case 'vcc':
             return 'volt';
+        case 'power':
+            return 'power';
         default:
             return 'other';
     }
