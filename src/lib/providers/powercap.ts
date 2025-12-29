@@ -217,7 +217,7 @@ export class PowercapProvider implements Provider {
         const output = await spawnText(cockpitInstance, [
             'sh',
             '-c',
-            `find ${POWERCAP_ROOT} -maxdepth 1 -type d ${RAPL_FIND_EXPRESSION} -print -quit 2>/dev/null`,
+            `find ${POWERCAP_ROOT} -maxdepth 3 -type d ${RAPL_FIND_EXPRESSION} -print -quit 2>/dev/null`,
         ]).catch(error => {
             if (error instanceof ProviderError && error.code === 'unexpected') {
                 return '';
