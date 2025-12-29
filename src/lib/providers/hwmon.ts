@@ -137,7 +137,11 @@ const sensorKindForPrefix = (prefix: string): SensorKind | null => {
         case 'fan':
             return 'fan';
         case 'in':
+        case 'vin':
+        case 'vcc':
             return 'volt';
+        case 'power':
+            return 'power';
         default:
             return null;
     }
@@ -151,6 +155,8 @@ const unitForKind = (kind: SensorKind): string => {
             return 'RPM';
         case 'volt':
             return 'V';
+        case 'power':
+            return 'W';
         case 'other':
         default:
             return '';
@@ -162,6 +168,8 @@ const scaleForKind = (kind: SensorKind): number => {
         case 'temp':
         case 'volt':
             return 0.001;
+        case 'power':
+            return 0.000001;
         case 'fan':
         default:
             return 1;
