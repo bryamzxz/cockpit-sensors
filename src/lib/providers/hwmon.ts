@@ -1,6 +1,14 @@
 import { getCockpit } from '../../utils/cockpit';
-import type { Cockpit, CockpitSpawnError } from '../../types/cockpit';
+import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SensorKind } from './types';
+import {
+    parseNumber,
+    readFile as readFileUtil,
+    readNumberFile as readNumberFileUtil,
+    spawnText as spawnTextUtil,
+    trim,
+    POLLING_INTERVALS,
+} from './utils';
 
 interface HwmonSensorDescriptor {
     id: string;
@@ -27,85 +35,26 @@ interface HwmonChipDescriptor {
     sensors: HwmonSensorDescriptor[];
 }
 
+const PROVIDER_NAME = 'hwmon';
 const HWMON_ROOT = '/sys/class/hwmon';
 const CHIP_LIST_COMMAND = `ls -d ${HWMON_ROOT}/hwmon* 2>/dev/null`;
 const SENSOR_LIST_COMMAND = (chipPath: string) => `ls ${chipPath} 2>/dev/null`;
 
-const TRIM = (value: string): string => value.trim();
+/** Wrapper for readFile with hwmon provider name */
+const readFile = (cockpitInstance: Cockpit, path: string): Promise<string | null> =>
+    readFileUtil(cockpitInstance, path, PROVIDER_NAME);
 
-const parseNumber = (value: string | null | undefined): number | undefined => {
-    if (!value) {
-        return undefined;
-    }
+/** Wrapper for readNumberFile with hwmon provider name */
+const readNumberFile = (
+    cockpitInstance: Cockpit,
+    path: string | undefined,
+    scale = 1,
+): Promise<number | undefined> =>
+    readNumberFileUtil(cockpitInstance, path, PROVIDER_NAME, scale);
 
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-        return undefined;
-    }
-
-    const parsed = Number.parseFloat(trimmed);
-    return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-const readFile = async (cockpitInstance: Cockpit, path: string): Promise<string | null> => {
-    try {
-        const handle = cockpitInstance.file(path, { superuser: 'require' });
-        const content = await handle.read();
-        handle.close();
-        return content;
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while reading hwmon data', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        return null;
-    }
-};
-
-const readNumberFile = async (cockpitInstance: Cockpit, path: string | undefined, scale = 1): Promise<number | undefined> => {
-    if (!path) {
-        return undefined;
-    }
-
-    const content = await readFile(cockpitInstance, path);
-    const parsed = parseNumber(content ?? undefined);
-    return typeof parsed === 'number' ? parsed * scale : undefined;
-};
-
-const isPermissionDenied = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'access-denied') {
-        return true;
-    }
-
-    if (typeof spawnError.message === 'string' && /permission denied/i.test(spawnError.message)) {
-        return true;
-    }
-
-    return false;
-};
-
-const spawnText = async (cockpitInstance: Cockpit, command: string[] | string): Promise<string> => {
-    try {
-        return await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while reading hwmon data', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        throw new ProviderError('Failed to read hwmon data from the system', 'unexpected', {
-            cause: error instanceof Error ? error : undefined,
-        });
-    }
-};
+/** Wrapper for spawnText with hwmon provider name */
+const spawnText = (cockpitInstance: Cockpit, command: string[] | string): Promise<string> =>
+    spawnTextUtil(cockpitInstance, command, PROVIDER_NAME);
 
 const resolveSensorLabel = async (
     cockpitInstance: Cockpit,
@@ -119,12 +68,12 @@ const resolveSensorLabel = async (
 
     const label = await readFile(cockpitInstance, labelPath);
     if (label) {
-        return TRIM(label);
+        return trim(label);
     }
 
     const name = await readFile(cockpitInstance, namePath);
     if (name) {
-        return TRIM(name);
+        return trim(name);
     }
 
     return fallback;
@@ -186,7 +135,7 @@ const extractSensorsFromListing = async (
 ): Promise<HwmonSensorDescriptor[]> => {
     const entries = listing
             .split('\n')
-            .map(TRIM)
+            .map(trim)
             .filter(entry => entry.endsWith('_input'));
 
     const descriptors: HwmonSensorDescriptor[] = [];
@@ -237,14 +186,14 @@ const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChip
     });
     const chipPaths = rawList
             .split('\n')
-            .map(TRIM)
+            .map(trim)
             .filter(path => path.length > 0);
 
     const chips: HwmonChipDescriptor[] = [];
 
     for (const chipPath of chipPaths) {
         const name = (await readFile(cockpitInstance, `${chipPath}/name`)) ?? '';
-        const label = name ? TRIM(name) : chipPath.split('/').pop() ?? chipPath;
+        const label = name ? trim(name) : chipPath.split('/').pop() ?? chipPath;
         const id = chipPath.split('/').pop() ?? chipPath;
 
         const listing = await spawnText(cockpitInstance, ['sh', '-c', SENSOR_LIST_COMMAND(chipPath)]).catch(error => {
@@ -332,7 +281,7 @@ export class HwmonProvider implements Provider {
                         samples.push(buildSample(descriptor, value));
                     }
                     onChange(samples);
-                }, 500);
+                }, POLLING_INTERVALS.THROTTLE);
                 return;
             }
 

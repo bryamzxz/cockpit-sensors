@@ -1,5 +1,5 @@
 import { getCockpit } from '../../utils/cockpit';
-import type { Cockpit, CockpitSpawnError } from '../../types/cockpit';
+import type { Cockpit } from '../../types/cockpit';
 import {
     Provider,
     ProviderContext,
@@ -9,67 +9,14 @@ import {
     SENSOR_KIND_TO_CATEGORY,
     SENSOR_KIND_TO_UNIT,
 } from './types';
+import {
+    coerceNumber,
+    isRecord,
+    spawnJson,
+    POLLING_INTERVALS,
+} from './utils';
 
-const POLL_INTERVAL_MS = 5000;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const coerceNumber = (value: unknown): number | undefined => {
-    if (typeof value === 'number') {
-        return Number.isFinite(value) ? value : undefined;
-    }
-
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed.length === 0) {
-            return undefined;
-        }
-
-        const parsed = Number.parseFloat(trimmed);
-        return Number.isFinite(parsed) ? parsed : undefined;
-    }
-
-    return undefined;
-};
-
-const isPermissionDenied = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'access-denied') {
-        return true;
-    }
-
-    if (typeof spawnError.message === 'string' && /permission denied/i.test(spawnError.message)) {
-        return true;
-    }
-
-    return false;
-};
-
-const isCommandMissing = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'not-found') {
-        return true;
-    }
-
-    if (spawnError.exit_status === 127) {
-        return true;
-    }
-
-    if (typeof spawnError.message === 'string') {
-        return /command not found|no such file or directory/i.test(spawnError.message);
-    }
-
-    return false;
-};
+const PROVIDER_NAME = 'lm-sensors';
 
 const INPUT_SUFFIX = '_input';
 
@@ -110,32 +57,14 @@ const prettifyLabel = (label: string): string => {
     return trimmed;
 };
 
-const readSensorsJson = async (cockpitInstance: Cockpit): Promise<unknown> => {
-    try {
-        const output = await cockpitInstance.spawn(['sensors', '-jA'], { superuser: 'require', err: 'out' });
-        const trimmed = output.trim();
-        if (!trimmed) {
-            return {};
-        }
-
-        return JSON.parse(trimmed);
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while executing sensors -j', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        if (isCommandMissing(error)) {
-            throw new ProviderError('lm-sensors utility is not available on this system', 'unavailable', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        const cause = error instanceof Error ? error : undefined;
-        throw new ProviderError('Failed to collect data from sensors -j', 'unexpected', { cause });
-    }
-};
+/** Reads sensor data using the lm-sensors JSON output format */
+const readSensorsJson = (cockpitInstance: Cockpit): Promise<unknown> =>
+    spawnJson(
+        cockpitInstance,
+        ['sensors', '-jA'],
+        PROVIDER_NAME,
+        'lm-sensors utility is not available on this system',
+    );
 
 const buildSample = (
     chipId: string,
@@ -324,7 +253,7 @@ export class LmSensorsProvider implements Provider {
         void poll();
 
         if (typeof window !== 'undefined') {
-            const interval = context?.refreshIntervalMs ?? POLL_INTERVAL_MS;
+            const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT;
             this.intervalHandle = window.setInterval(() => {
                 void poll();
             }, interval);
