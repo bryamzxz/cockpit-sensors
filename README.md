@@ -150,3 +150,10 @@ Always run both commands before sending changes for review or release.
    RPM) through your preferred channels.
 
 For Cockpit packaging details refer to the [official documentation](https://cockpit-project.org/guide/latest/).
+
+## Contributing
+
+Contributions are welcome! Please see our contributing guidelines:
+
+- [English](CONTRIBUTING_EN.md)
+- [Espa&ntilde;ol](CONTRIBUTING.md)

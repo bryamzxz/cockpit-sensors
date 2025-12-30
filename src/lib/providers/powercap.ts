@@ -1,11 +1,16 @@
 import { getCockpit } from '../../utils/cockpit';
-import type { Cockpit, CockpitSpawnError } from '../../types/cockpit';
+import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
+import {
+    readFile as readFileUtil,
+    readNumberFile as readNumberFileUtil,
+    spawnText as spawnTextUtil,
+    POLLING_INTERVALS,
+} from './utils';
 
+const PROVIDER_NAME = 'powercap';
 const POWERCAP_ROOT = '/sys/class/powercap';
 const MICRO_UNITS_PER_WATT = 1_000_000;
-const DEFAULT_REFRESH_MS = 3000;
-const MIN_REFRESH_MS = 500;
 const RAPL_FIND_EXPRESSION = '\\( -name "*-rapl:*" -o -name "rapl:*" \\)';
 
 interface RaplDomainState {
@@ -20,79 +25,17 @@ interface RaplDomainState {
     cachedPower?: number;
 }
 
-const isPermissionDenied = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
+/** Wrapper for readFile with powercap provider name */
+const readFile = (cockpitInstance: Cockpit, path: string): Promise<string | null> =>
+    readFileUtil(cockpitInstance, path, PROVIDER_NAME);
 
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'access-denied') {
-        return true;
-    }
+/** Wrapper for readNumberFile with powercap provider name */
+const readNumberFile = (cockpitInstance: Cockpit, path: string | undefined): Promise<number | undefined> =>
+    readNumberFileUtil(cockpitInstance, path, PROVIDER_NAME);
 
-    if (typeof spawnError.message === 'string' && /permission denied/i.test(spawnError.message)) {
-        return true;
-    }
-
-    return false;
-};
-
-const parseNumber = (value: string | null | undefined): number | undefined => {
-    if (typeof value !== 'string') {
-        return undefined;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-        return undefined;
-    }
-
-    const parsed = Number.parseFloat(trimmed);
-    return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-const spawnText = async (cockpitInstance: Cockpit, command: string[] | string): Promise<string> => {
-    try {
-        return await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while reading powercap data', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        throw new ProviderError('Failed to read powercap data from the system', 'unexpected', {
-            cause: error instanceof Error ? error : undefined,
-        });
-    }
-};
-
-const readFile = async (cockpitInstance: Cockpit, path: string): Promise<string | null> => {
-    try {
-        const handle = cockpitInstance.file(path, { superuser: 'require' });
-        const content = await handle.read();
-        handle.close();
-        return content;
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while reading powercap data', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        return null;
-    }
-};
-
-const readNumberFile = async (cockpitInstance: Cockpit, path: string | undefined): Promise<number | undefined> => {
-    if (!path) {
-        return undefined;
-    }
-
-    const content = await readFile(cockpitInstance, path);
-    const parsed = parseNumber(content ?? undefined);
-    return typeof parsed === 'number' ? parsed : undefined;
-};
+/** Wrapper for spawnText with powercap provider name */
+const spawnText = (cockpitInstance: Cockpit, command: string[] | string): Promise<string> =>
+    spawnTextUtil(cockpitInstance, command, PROVIDER_NAME);
 
 const buildSample = (domain: RaplDomainState, watts: number): SensorSample => ({
     kind: 'power',
@@ -238,7 +181,7 @@ export class PowercapProvider implements Provider {
         let disposed = false;
         let domains: RaplDomainState[] = [];
 
-        const pollMs = Math.max(context?.refreshIntervalMs ?? DEFAULT_REFRESH_MS, MIN_REFRESH_MS);
+        const pollMs = Math.max(context?.refreshIntervalMs ?? POLLING_INTERVALS.POWERCAP, POLLING_INTERVALS.MINIMUM);
 
         const collect = async () => {
             try {

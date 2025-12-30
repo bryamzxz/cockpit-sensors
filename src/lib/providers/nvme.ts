@@ -1,8 +1,10 @@
 import { getCockpit } from '../../utils/cockpit';
-import type { Cockpit, CockpitSpawnError } from '../../types/cockpit';
+import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
+import { isRecord, spawnJson, POLLING_INTERVALS } from './utils';
 
-const POLL_INTERVAL_MS = 10000;
+const PROVIDER_NAME = 'nvme';
+const UNAVAILABLE_MESSAGE = 'nvme-cli is not available on this system';
 
 interface NvmeDeviceInfo {
     name: string;
@@ -15,74 +17,9 @@ interface NvmeSmartLog {
     temperature?: number;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const isPermissionDenied = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'access-denied') {
-        return true;
-    }
-
-    if (typeof spawnError.message === 'string' && /permission denied/i.test(spawnError.message)) {
-        return true;
-    }
-
-    return false;
-};
-
-const isCommandMissing = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const spawnError = error as CockpitSpawnError & { message?: string };
-    if (spawnError.problem === 'not-found') {
-        return true;
-    }
-
-    if (spawnError.exit_status === 127) {
-        return true;
-    }
-
-    if (typeof spawnError.message === 'string') {
-        return /command not found|no such file or directory/i.test(spawnError.message);
-    }
-
-    return false;
-};
-
-const runJsonCommand = async (cockpitInstance: Cockpit, command: string[]): Promise<unknown> => {
-    try {
-        const output = await cockpitInstance.spawn(command, { superuser: 'require', err: 'out' });
-        const trimmed = output.trim();
-        if (!trimmed) {
-            return {};
-        }
-
-        return JSON.parse(trimmed);
-    } catch (error) {
-        if (isPermissionDenied(error)) {
-            throw new ProviderError('Permission denied while executing nvme command', 'permission-denied', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        if (isCommandMissing(error)) {
-            throw new ProviderError('nvme-cli is not available on this system', 'unavailable', {
-                cause: error instanceof Error ? error : undefined,
-            });
-        }
-
-        throw new ProviderError('Failed to execute nvme command', 'unexpected', {
-            cause: error instanceof Error ? error : undefined,
-        });
-    }
-};
+/** Wrapper for spawnJson with nvme provider configuration */
+const runJsonCommand = (cockpitInstance: Cockpit, command: string[]): Promise<unknown> =>
+    spawnJson(cockpitInstance, command, PROVIDER_NAME, UNAVAILABLE_MESSAGE);
 
 const listNvmeDevices = async (cockpitInstance: Cockpit): Promise<NvmeDeviceInfo[]> => {
     const payload = await runJsonCommand(cockpitInstance, ['nvme', 'list', '--output-format=json']);
@@ -237,7 +174,7 @@ export class NvmeProvider implements Provider {
         void poll();
 
         if (typeof window !== 'undefined') {
-            const interval = context?.refreshIntervalMs ?? POLL_INTERVAL_MS;
+            const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.NVME;
             this.intervalHandle = window.setInterval(() => {
                 void poll();
             }, interval);
