@@ -3,83 +3,119 @@ import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
 import { isRecord, spawnJson, POLLING_INTERVALS } from './utils';
 
-const PROVIDER_NAME = 'nvme';
-const UNAVAILABLE_MESSAGE = 'nvme-cli is not available on this system';
+const PROVIDER_NAME = 'smartctl';
+const UNAVAILABLE_MESSAGE = 'smartmontools is not available on this system';
 
-export interface NvmeDeviceInfo {
+export interface SmartctlDeviceInfo {
     name: string;
     model?: string;
     serial?: string;
+    protocol?: string;
 }
 
-interface NvmeSmartLog {
-    composite_temperature?: number;
-    temperature?: number;
+interface SmartctlScanResult {
+    devices?: Array<{
+        name?: string;
+        info_name?: string;
+        type?: string;
+        protocol?: string;
+    }>;
 }
 
-/** Wrapper for spawnJson with nvme provider configuration */
+interface SmartctlDeviceData {
+    device?: {
+        name?: string;
+        info_name?: string;
+        type?: string;
+        protocol?: string;
+    };
+    model_name?: string;
+    serial_number?: string;
+    temperature?: {
+        current?: number;
+    };
+    ata_smart_attributes?: {
+        table?: Array<{
+            id: number;
+            name: string;
+            value: number;
+            raw?: {
+                value: number;
+                string: string;
+            };
+        }>;
+    };
+}
+
+/** Wrapper for spawnJson with smartctl provider configuration */
 const runJsonCommand = (cockpitInstance: Cockpit, command: string[]): Promise<unknown> =>
     spawnJson(cockpitInstance, command, PROVIDER_NAME, UNAVAILABLE_MESSAGE);
 
-const listNvmeDevices = async (cockpitInstance: Cockpit): Promise<NvmeDeviceInfo[]> => {
-    const payload = await runJsonCommand(cockpitInstance, ['nvme', 'list', '--output-format=json']);
+const listSmartctlDevices = async (cockpitInstance: Cockpit): Promise<SmartctlDeviceInfo[]> => {
+    const payload = await runJsonCommand(cockpitInstance, ['smartctl', '--scan', '-j']);
     if (!isRecord(payload)) {
         return [];
     }
 
-    const devicesValue = payload.Devices ?? payload.devices;
-    if (!Array.isArray(devicesValue)) {
+    const result = payload as SmartctlScanResult;
+    if (!Array.isArray(result.devices)) {
         return [];
     }
 
-    const devices: NvmeDeviceInfo[] = [];
-    for (const entry of devicesValue) {
-        if (!isRecord(entry)) {
+    const devices: SmartctlDeviceInfo[] = [];
+    for (const entry of result.devices) {
+        if (!isRecord(entry) || typeof entry.name !== 'string') {
             continue;
         }
 
-        const name = typeof entry.DevicePath === 'string'
-            ? entry.DevicePath
-            : typeof entry.Name === 'string'
-                ? entry.Name
-                : undefined;
-        if (!name) {
-            continue;
-        }
-
-        const model = typeof entry.ModelNumber === 'string' ? entry.ModelNumber.trim() : undefined;
-        const serial = typeof entry.SerialNumber === 'string' ? entry.SerialNumber.trim() : undefined;
-
-        devices.push({ name, model, serial });
+        devices.push({
+            name: entry.name,
+            protocol: typeof entry.protocol === 'string' ? entry.protocol : undefined,
+        });
     }
 
     return devices;
 };
 
-const readSmartLog = async (cockpitInstance: Cockpit, devicePath: string): Promise<NvmeSmartLog> => {
-    const payload = await runJsonCommand(cockpitInstance, ['nvme', 'smart-log', devicePath, '--output-format=json']);
+const readDeviceData = async (cockpitInstance: Cockpit, devicePath: string): Promise<SmartctlDeviceData> => {
+    // Use -i for device info and -A for attributes, combined in one call
+    const payload = await runJsonCommand(cockpitInstance, ['smartctl', '-i', '-A', '-j', devicePath]);
     if (!isRecord(payload)) {
         return {};
     }
 
-    return payload as NvmeSmartLog;
+    return payload as SmartctlDeviceData;
 };
 
-export const convertTemperature = (raw?: number): number | undefined => {
-    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+/**
+ * Extract temperature from smartctl data.
+ * Priority: temperature.current > ata_smart_attributes id 194 > id 190
+ */
+export const extractTemperature = (data: SmartctlDeviceData): number | undefined => {
+    // First try the direct temperature field
+    if (data.temperature?.current !== undefined && Number.isFinite(data.temperature.current)) {
+        return data.temperature.current;
+    }
+
+    // Fall back to SMART attributes
+    const table = data.ata_smart_attributes?.table;
+    if (!Array.isArray(table)) {
         return undefined;
     }
 
-    // The NVMe specification encodes composite temperatures in Kelvin.
-    if (raw > 200) {
-        return raw - 273;
+    // Try attribute 194 (Temperature_Celsius) first, then 190 (Airflow_Temperature_Cel)
+    for (const attrId of [194, 190]) {
+        const attr = table.find(a => a.id === attrId);
+        if (attr?.value !== undefined && Number.isFinite(attr.value)) {
+            return attr.value;
+        }
     }
 
-    return raw;
+    return undefined;
 };
 
-export const buildSample = (device: NvmeDeviceInfo, temperature: number): SensorSample => {
-    const labelParts = [device.model ?? 'NVMe device'];
+export const buildSample = (device: SmartctlDeviceInfo, temperature: number): SensorSample => {
+    const labelParts = [device.model ?? 'SATA device'];
     if (device.serial) {
         labelParts.push(`#${device.serial}`);
     }
@@ -98,13 +134,13 @@ export const buildSample = (device: NvmeDeviceInfo, temperature: number): Sensor
     };
 };
 
-export class NvmeProvider implements Provider {
-    readonly name = 'nvme';
+export class SmartctlProvider implements Provider {
+    readonly name = 'smartctl';
     private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
-        const devices = await listNvmeDevices(cockpitInstance).catch(error => {
+        const devices = await listSmartctlDevices(cockpitInstance).catch(error => {
             if (error instanceof ProviderError) {
                 if (error.code === 'permission-denied') {
                     throw error;
@@ -127,7 +163,7 @@ export class NvmeProvider implements Provider {
 
         const poll = async () => {
             try {
-                const devices = await listNvmeDevices(cockpitInstance);
+                const devices = await listSmartctlDevices(cockpitInstance);
                 if (disposed) {
                     return;
                 }
@@ -140,8 +176,17 @@ export class NvmeProvider implements Provider {
                 const samples: SensorSample[] = [];
                 for (const device of devices) {
                     try {
-                        const log = await readSmartLog(cockpitInstance, device.name);
-                        const temperature = convertTemperature(log.composite_temperature ?? log.temperature);
+                        const data = await readDeviceData(cockpitInstance, device.name);
+
+                        // Enrich device info with model and serial from response
+                        if (data.model_name) {
+                            device.model = data.model_name.trim();
+                        }
+                        if (data.serial_number) {
+                            device.serial = data.serial_number.trim();
+                        }
+
+                        const temperature = extractTemperature(data);
                         if (typeof temperature === 'number') {
                             samples.push(buildSample(device, temperature));
                         }
@@ -190,4 +235,4 @@ export class NvmeProvider implements Provider {
     }
 }
 
-export const nvmeProvider = new NvmeProvider();
+export const smartctlProvider = new SmartctlProvider();
