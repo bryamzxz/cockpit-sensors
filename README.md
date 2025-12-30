@@ -85,7 +85,7 @@ following order:
 
 1. `/sys/class/hwmon` for direct kernel sensor exposure.
 2. `sensors -j` from the lm-sensors package.
-3. `nvme smart-log -o json` from nvme-cli for NVMe device temperatures.
+3. `nvme smart-log <device> -o json` from nvme-cli for NVMe device temperatures.
 
 The first backend that reports data for a given sensor kind feeds the UI, while
 NVMe telemetry is always added as an extra source when available. If no backend
