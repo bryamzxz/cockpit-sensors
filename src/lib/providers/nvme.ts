@@ -6,7 +6,7 @@ import { isRecord, spawnJson, POLLING_INTERVALS } from './utils';
 const PROVIDER_NAME = 'nvme';
 const UNAVAILABLE_MESSAGE = 'nvme-cli is not available on this system';
 
-interface NvmeDeviceInfo {
+export interface NvmeDeviceInfo {
     name: string;
     model?: string;
     serial?: string;
@@ -57,7 +57,7 @@ const listNvmeDevices = async (cockpitInstance: Cockpit): Promise<NvmeDeviceInfo
 };
 
 const readSmartLog = async (cockpitInstance: Cockpit, devicePath: string): Promise<NvmeSmartLog> => {
-    const payload = await runJsonCommand(cockpitInstance, ['nvme', 'smart-log', '--output-format=json', devicePath]);
+    const payload = await runJsonCommand(cockpitInstance, ['nvme', 'smart-log', devicePath, '--output-format=json']);
     if (!isRecord(payload)) {
         return {};
     }
@@ -65,7 +65,7 @@ const readSmartLog = async (cockpitInstance: Cockpit, devicePath: string): Promi
     return payload as NvmeSmartLog;
 };
 
-const convertTemperature = (raw?: number): number | undefined => {
+export const convertTemperature = (raw?: number): number | undefined => {
     if (typeof raw !== 'number' || !Number.isFinite(raw)) {
         return undefined;
     }
@@ -78,7 +78,7 @@ const convertTemperature = (raw?: number): number | undefined => {
     return raw;
 };
 
-const buildSample = (device: NvmeDeviceInfo, temperature: number): SensorSample => {
+export const buildSample = (device: NvmeDeviceInfo, temperature: number): SensorSample => {
     const labelParts = [device.model ?? 'NVMe device'];
     if (device.serial) {
         labelParts.push(`#${device.serial}`);
