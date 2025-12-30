@@ -86,9 +86,10 @@ following order:
 1. `/sys/class/hwmon` for direct kernel sensor exposure.
 2. `sensors -j` from the lm-sensors package.
 3. `nvme smart-log <device> -o json` from nvme-cli for NVMe device temperatures.
+4. `smartctl -i -A -j <device>` from smartmontools for SATA/SAS drive temperatures.
 
 The first backend that reports data for a given sensor kind feeds the UI, while
-NVMe telemetry is always added as an extra source when available. If no backend
+NVMe and SATA drive telemetry is always added as an extra source when available. If no backend
 is present, the page renders a banner with setup instructions and offers a
 single-click copy of the recommended installation command:
 
