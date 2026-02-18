@@ -37,8 +37,6 @@ interface HwmonChipDescriptor {
 
 const PROVIDER_NAME = 'hwmon';
 const HWMON_ROOT = '/sys/class/hwmon';
-const CHIP_LIST_COMMAND = `ls -d ${HWMON_ROOT}/hwmon* 2>/dev/null`;
-const SENSOR_LIST_COMMAND = (chipPath: string) => `ls ${chipPath} 2>/dev/null`;
 
 /** Wrapper for readFile with hwmon provider name */
 const readFile = (cockpitInstance: Cockpit, path: string): Promise<string | null> =>
@@ -177,7 +175,9 @@ const extractSensorsFromListing = async (
 };
 
 const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChipDescriptor[]> => {
-    const rawList = await spawnText(cockpitInstance, ['sh', '-c', CHIP_LIST_COMMAND]).catch(error => {
+    const rawList = await spawnText(cockpitInstance, [
+        'find', HWMON_ROOT, '-mindepth', '1', '-maxdepth', '1', '-name', 'hwmon*',
+    ]).catch(error => {
         if (error instanceof ProviderError && error.code === 'unexpected') {
             return '';
         }
@@ -196,7 +196,9 @@ const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChip
         const label = name ? trim(name) : chipPath.split('/').pop() ?? chipPath;
         const id = chipPath.split('/').pop() ?? chipPath;
 
-        const listing = await spawnText(cockpitInstance, ['sh', '-c', SENSOR_LIST_COMMAND(chipPath)]).catch(error => {
+        const listing = await spawnText(cockpitInstance, [
+            'find', chipPath, '-maxdepth', '1', '-name', '*_input', '-type', 'f', '-printf', '%f\n',
+        ]).catch(error => {
             if (error instanceof ProviderError && error.code === 'unexpected') {
                 return '';
             }
@@ -242,7 +244,7 @@ export class HwmonProvider implements Provider {
         const cockpitInstance = getCockpit();
         const output = await spawnText(
             cockpitInstance,
-            ['sh', '-c', `find ${HWMON_ROOT} -maxdepth 2 -type f -name "*_input" -print -quit`],
+            ['find', HWMON_ROOT, '-maxdepth', '2', '-type', 'f', '-name', '*_input', '-print', '-quit'],
         ).catch(error => {
             if (error instanceof ProviderError && error.code === 'permission-denied') {
                 throw error;
