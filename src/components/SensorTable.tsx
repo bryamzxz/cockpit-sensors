@@ -359,22 +359,24 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                             </FormSelect>
                         </ToolbarItem>
                     </ToolbarGroup>
-                    <ToolbarGroup>
-                        <ToolbarItem>
-                            <label className="sensor-toolbar__label" htmlFor="sensor-unit-select">
-                                {_('Temperature unit')}
-                            </label>
-                            <FormSelect
-                                value={unit}
-                                onChange={value => handleUnitToggle(value as TemperatureUnit)}
-                                aria-label={_('Temperature unit selector')}
-                                id="sensor-unit-select"
-                            >
-                                <FormSelectOption value="C" label={_('Degrees Celsius (°C)')} />
-                                <FormSelectOption value="F" label={_('Degrees Fahrenheit (°F)')} />
-                            </FormSelect>
-                        </ToolbarItem>
-                    </ToolbarGroup>
+                    {category === 'temperature' && (
+                        <ToolbarGroup>
+                            <ToolbarItem>
+                                <label className="sensor-toolbar__label" htmlFor="sensor-unit-select">
+                                    {_('Temperature unit')}
+                                </label>
+                                <FormSelect
+                                    value={unit}
+                                    onChange={value => handleUnitToggle(value as TemperatureUnit)}
+                                    aria-label={_('Temperature unit selector')}
+                                    id="sensor-unit-select"
+                                >
+                                    <FormSelectOption value="C" label={_('Degrees Celsius (°C)')} />
+                                    <FormSelectOption value="F" label={_('Degrees Fahrenheit (°F)')} />
+                                </FormSelect>
+                            </ToolbarItem>
+                        </ToolbarGroup>
+                    )}
                     <ToolbarItem alignment={{ default: 'alignRight' }}>
                         <Tooltip content={_('Download session history as CSV')}>
                             <Button
