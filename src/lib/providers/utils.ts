@@ -19,6 +19,8 @@ export const POLLING_INTERVALS = {
     NVME: 10000,
     /** Interval for power consumption data which benefits from frequent updates (3 seconds) */
     POWERCAP: 3000,
+    /** Interval for CPU frequency data (5 seconds) */
+    CPUFREQ: 5000,
     /** Minimum allowed polling interval to prevent excessive system load */
     MINIMUM: 500,
     /** Throttle delay for batching rapid file watch events */
@@ -178,6 +180,21 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
  * Exported for consistent string handling across providers.
  */
 export const trim = (value: string): string => value.trim();
+
+/**
+ * Validates that a device path is a safe, well-formed /dev/ path.
+ *
+ * Device paths come from external command output (nvme list, smartctl --scan).
+ * This guard prevents unexpected paths from being passed to subsequent commands.
+ *
+ * Accepts: /dev/nvme0, /dev/sda, /dev/nvme0n1
+ * Rejects: anything with spaces, shell metacharacters, relative paths, etc.
+ *
+ * @param path - The device path to validate
+ * @returns true if the path matches /dev/<safe-chars>
+ */
+export const isValidDevicePath = (path: string): boolean =>
+    /^\/dev\/[a-zA-Z0-9/]+$/.test(path);
 
 /**
  * Reads the contents of a file using the Cockpit file API.

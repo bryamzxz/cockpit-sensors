@@ -1,7 +1,7 @@
 import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
-import { isRecord, spawnJson, POLLING_INTERVALS } from './utils';
+import { isRecord, isValidDevicePath, spawnJson, POLLING_INTERVALS } from './utils';
 
 const PROVIDER_NAME = 'smartctl';
 const UNAVAILABLE_MESSAGE = 'smartmontools is not available on this system';
@@ -65,6 +65,10 @@ const listSmartctlDevices = async (cockpitInstance: Cockpit): Promise<SmartctlDe
     const devices: SmartctlDeviceInfo[] = [];
     for (const entry of result.devices) {
         if (!isRecord(entry) || typeof entry.name !== 'string') {
+            continue;
+        }
+
+        if (!isValidDevicePath(entry.name)) {
             continue;
         }
 

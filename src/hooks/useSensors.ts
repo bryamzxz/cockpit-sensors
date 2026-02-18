@@ -7,6 +7,7 @@ import { lmSensorsProvider } from '../lib/providers/lm-sensors';
 import { nvmeProvider } from '../lib/providers/nvme';
 import { powercapProvider } from '../lib/providers/powercap';
 import { smartctlProvider } from '../lib/providers/smartctl';
+import { cpufreqProvider } from '../lib/providers/cpufreq';
 import {
     Provider,
     ProviderError,
@@ -37,7 +38,7 @@ export interface UseSensorsResult extends UseSensorsState {
 }
 
 const PRIMARY_PROVIDERS: Provider[] = [hwmonProvider, lmSensorsProvider];
-const AUXILIARY_PROVIDERS: Provider[] = [powercapProvider, nvmeProvider, smartctlProvider];
+const AUXILIARY_PROVIDERS: Provider[] = [powercapProvider, nvmeProvider, smartctlProvider, cpufreqProvider];
 const AGGREGATION_ORDER = PRIMARY_PROVIDERS.concat(AUXILIARY_PROVIDERS).map(provider => provider.name);
 
 const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): SampleWithProvider[] => {

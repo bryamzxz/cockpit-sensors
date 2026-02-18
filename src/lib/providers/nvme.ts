@@ -1,7 +1,7 @@
 import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
-import { isRecord, spawnJson, POLLING_INTERVALS } from './utils';
+import { isRecord, isValidDevicePath, spawnJson, POLLING_INTERVALS } from './utils';
 
 const PROVIDER_NAME = 'nvme';
 const UNAVAILABLE_MESSAGE = 'nvme-cli is not available on this system';
@@ -44,6 +44,10 @@ const listNvmeDevices = async (cockpitInstance: Cockpit): Promise<NvmeDeviceInfo
                 ? entry.Name
                 : undefined;
         if (!name) {
+            continue;
+        }
+
+        if (!isValidDevicePath(name)) {
             continue;
         }
 

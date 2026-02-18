@@ -1,5 +1,18 @@
 @use "page";
 
+// Ensure the Cockpit iframe fills the full viewport.
+// PatternFly Page uses min-height: 100% which requires the ancestor
+// chain (html → body → #app) to have explicit heights.
+html,
+body,
+#app {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+}
+
 /* Dark-theme ready: usa tokens PF v6 y NO colores hardcodeados */
 /* Variables de Sensors (se sobreescriben en tema oscuro automáticamente) */
 :root {

@@ -11,7 +11,6 @@ import {
 const PROVIDER_NAME = 'powercap';
 const POWERCAP_ROOT = '/sys/class/powercap';
 const MICRO_UNITS_PER_WATT = 1_000_000;
-const RAPL_FIND_EXPRESSION = '\\( -name "*-rapl:*" -o -name "rapl:*" \\)';
 
 interface RaplDomainState {
     id: string;
@@ -109,9 +108,9 @@ const listRaplDomains = async (cockpitInstance: Cockpit): Promise<RaplDomainStat
     // e.g., intel-rapl:0, intel-rapl:0:0 (core), intel-rapl:0:1 (uncore)
     // Using -maxdepth 1 since symlinks are at the top level
     const rawList = await spawnText(cockpitInstance, [
-        'sh',
-        '-c',
-        `find ${POWERCAP_ROOT} -maxdepth 1 \\( -type d -o -type l \\) ${RAPL_FIND_EXPRESSION} 2>/dev/null`,
+        'find', POWERCAP_ROOT, '-maxdepth', '1',
+        '(', '-type', 'd', '-o', '-type', 'l', ')',
+        '(', '-name', '*-rapl:*', '-o', '-name', 'rapl:*', ')',
     ]).catch(error => {
         if (error instanceof ProviderError && error.code === 'unexpected') {
             return '';
@@ -162,9 +161,10 @@ export class PowercapProvider implements Provider {
         const cockpitInstance = getCockpit();
         // Check for RAPL domains (symlinks at top level of /sys/class/powercap/)
         const output = await spawnText(cockpitInstance, [
-            'sh',
-            '-c',
-            `find ${POWERCAP_ROOT} -maxdepth 1 \\( -type d -o -type l \\) ${RAPL_FIND_EXPRESSION} -print -quit 2>/dev/null`,
+            'find', POWERCAP_ROOT, '-maxdepth', '1',
+            '(', '-type', 'd', '-o', '-type', 'l', ')',
+            '(', '-name', '*-rapl:*', '-o', '-name', 'rapl:*', ')',
+            '-print', '-quit',
         ]).catch(error => {
             if (error instanceof ProviderError && error.code === 'unexpected') {
                 return '';
