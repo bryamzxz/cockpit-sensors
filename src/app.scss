@@ -56,6 +56,7 @@ body {
 
 .pf-c-table {
     width: 100%;
+    table-layout: fixed;
 }
 
 /* Section clara/oscura según PF (no forzar colores fijos) */
@@ -73,6 +74,16 @@ body {
 
 .pf-c-table td,
 .pf-c-table th {
+    word-break: break-word;
+}
+
+.pf-c-table td {
+    white-space: nowrap;
+}
+
+.pf-c-table td[data-label="Chip"],
+.pf-c-table td[data-label="Sensor"] {
+    white-space: normal;
     word-break: break-word;
 }
 

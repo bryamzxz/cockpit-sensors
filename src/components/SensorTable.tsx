@@ -410,6 +410,15 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             ) : (
                 <div className="pf-c-table-wrapper" role="presentation">
                     <table className="pf-c-table pf-m-compact pf-m-grid-md" role="grid" aria-label={_('Sensor readings')}>
+                        <colgroup>
+                            <col style={{ width: '2.5rem' }} />
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '16%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '10%' }} />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col" aria-label={_('Pinned status')} />
