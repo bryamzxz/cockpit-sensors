@@ -66,7 +66,7 @@ const readSmartLog = async (cockpitInstance: Cockpit, devicePath: string): Promi
         return {};
     }
 
-    return payload as NvmeSmartLog;
+    return payload;
 };
 
 export const convertTemperature = (raw?: number): number | undefined => {

@@ -88,7 +88,7 @@ const readDeviceData = async (cockpitInstance: Cockpit, devicePath: string): Pro
         return {};
     }
 
-    return payload as SmartctlDeviceData;
+    return payload;
 };
 
 /**
