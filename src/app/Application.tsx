@@ -25,6 +25,9 @@ import {
     Button,
     ClipboardCopy,
     Label,
+    Page,
+    PageGroup,
+    PageSection,
     Tab,
     TabTitleText,
     Tabs,
@@ -316,62 +319,86 @@ export const Application: React.FC = () => {
         return 'normal';
     })();
 
+    const banner = renderBanner();
+
     return (
-        <main className="sensor-app" aria-label={_('Sensors dashboard')}>
-            <header className="sensor-app__hero">
-                <div className="sensor-app__hero-row">
-                    <div className="sensor-app__title-block">
-                        <h1 className="sensor-app__title">
-                            {_('Sensors')}
-                            <Label isCompact color="blue">
-                                {totalReadings > 0
-                                    ? `${totalReadings} ${_('readings')}`
-                                    : _('Idle')}
-                            </Label>
-                        </h1>
-                        <p className="sensor-app__subtitle">
-                            {_('Live hardware telemetry: temperature, fans, voltages and power.')}
-                        </p>
-                    </div>
-                    <div className="sensor-app__meta">
-                        <span
-                            className={`sensor-app__status-pill sensor-app__status-pill--${pillVariant}${isPaused ? ' sensor-app__status-pill--idle' : ''}`}
-                            role="status"
-                            aria-live="polite"
-                        >
-                            {statusPillLabel}
-                        </span>
-                        <span className="sensor-app__updated" aria-live="polite">
-                            {_('Updated')}: {formatLastUpdate(lastUpdate)}
-                        </span>
-                    </div>
-                </div>
-                {availableProviders.length > 0 && (
-                    <div className="sensor-sources">
-                        <span className="sensor-sources__label">{_('Data sources')}</span>
-                        {availableProviders.map(provider => (
-                            <Label
-                                key={provider}
-                                color={activeProvider === provider ? 'blue' : 'grey'}
-                                isCompact
+        <Page
+            className="pf-m-no-sidebar"
+            isContentFilled
+            aria-label={_('Sensors dashboard')}
+        >
+            <PageGroup stickyOnBreakpoint={{ default: 'top' }}>
+                <PageSection
+                    hasBodyWrapper={false}
+                    padding={{ default: 'noPadding' }}
+                    className="sensor-app__hero"
+                >
+                    <div className="sensor-app__hero-row">
+                        <div className="sensor-app__title-block">
+                            <h1 className="sensor-app__title">
+                                {_('Sensors')}
+                                <Label isCompact color="blue">
+                                    {totalReadings > 0
+                                        ? `${totalReadings} ${_('readings')}`
+                                        : _('Idle')}
+                                </Label>
+                            </h1>
+                            <p className="sensor-app__subtitle">
+                                {_('Live hardware telemetry: temperature, fans, voltages and power.')}
+                            </p>
+                        </div>
+                        <div className="sensor-app__meta">
+                            <span
+                                className={`sensor-app__status-pill sensor-app__status-pill--${pillVariant}${isPaused ? ' sensor-app__status-pill--idle' : ''}`}
+                                role="status"
+                                aria-live="polite"
                             >
-                                {provider}
-                                {activeProvider === provider && <> · {_('active')}</>}
-                            </Label>
-                        ))}
+                                {statusPillLabel}
+                            </span>
+                            <span className="sensor-app__updated" aria-live="polite">
+                                {_('Updated')}: {formatLastUpdate(lastUpdate)}
+                            </span>
+                        </div>
                     </div>
+                    {availableProviders.length > 0 && (
+                        <div className="sensor-sources">
+                            <span className="sensor-sources__label">{_('Data sources')}</span>
+                            {availableProviders.map(provider => (
+                                <Label
+                                    key={provider}
+                                    color={activeProvider === provider ? 'blue' : 'grey'}
+                                    isCompact
+                                >
+                                    {provider}
+                                    {activeProvider === provider && <> · {_('active')}</>}
+                                </Label>
+                            ))}
+                        </div>
+                    )}
+                    <div className="sensor-app__shortcuts" aria-hidden="true">
+                        <span><kbd>/</kbd>{_('Search')}</span>
+                        <span><kbd>P</kbd>{_('Pause / resume')}</span>
+                        <span><kbd>U</kbd>{_('Switch °C / °F')}</span>
+                        <span><kbd>V</kbd>{_('Toggle table / cards')}</span>
+                    </div>
+                </PageSection>
+
+                {banner && (
+                    <PageSection
+                        hasBodyWrapper={false}
+                        padding={{ default: 'noPadding' }}
+                        className="sensor-app__banners"
+                    >
+                        {banner}
+                    </PageSection>
                 )}
-                <div className="sensor-app__shortcuts" aria-hidden="true">
-                    <span><kbd>/</kbd>{_('Search')}</span>
-                    <span><kbd>P</kbd>{_('Pause / resume')}</span>
-                    <span><kbd>U</kbd>{_('Switch °C / °F')}</span>
-                    <span><kbd>V</kbd>{_('Toggle table / cards')}</span>
-                </div>
-            </header>
+            </PageGroup>
 
-            <div className="sensor-app__banners">{renderBanner()}</div>
-
-            <section className="sensor-app__content">
+            <PageSection
+                hasBodyWrapper={false}
+                padding={{ default: 'noPadding' }}
+                className="sensor-app__content"
+            >
                 <Tabs
                     className="sensor-tabs"
                     activeKey={activeKey}
@@ -440,7 +467,7 @@ export const Application: React.FC = () => {
                         );
                     })}
                 </Tabs>
-            </section>
-        </main>
+            </PageSection>
+        </Page>
     );
 };

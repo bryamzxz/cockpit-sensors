@@ -6,13 +6,6 @@ body,
     block-size: 100%;
 }
 
-/* page.scss sets `overflow-block: hidden` on body to defer scroll to PatternFly's
-   <Page> component. This module renders a custom `<main class="sensor-app">` instead,
-   so let the body itself handle vertical overflow. */
-html:not(.index-page) body {
-    overflow-block: auto;
-}
-
 body {
     margin: 0;
     background: var(--pf-t--global--background--color--primary--default, var(--pf-v6-global--BackgroundColor--100));
@@ -38,14 +31,9 @@ body {
     --sensor-bg-hover: rgba(255, 255, 255, 0.04);
 }
 
-/* ---------- Page chrome ---------- */
-.sensor-app {
-    display: flex;
-    flex-direction: column;
-    min-block-size: 100%;
-    inline-size: 100%;
-}
-
+/* ---------- Page chrome ----------
+   The page layout (height, scrolling) is delegated to PatternFly's <Page>
+   component. We only style the inner PageSection blocks here. */
 .sensor-app__hero {
     padding: var(--pf-t--global--spacer--lg, 1rem) var(--pf-t--global--spacer--xl, 1.5rem);
     border-block-end: 1px solid var(--sensor-border);
@@ -165,7 +153,6 @@ body {
 }
 
 .sensor-app__content {
-    flex: 1 1 auto;
     padding: var(--pf-t--global--spacer--md, 0.75rem) var(--pf-t--global--spacer--xl, 1.5rem) var(--pf-t--global--spacer--xl, 1.5rem);
     display: flex;
     flex-direction: column;

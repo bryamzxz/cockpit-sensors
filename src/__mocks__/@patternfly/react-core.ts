@@ -58,12 +58,23 @@ export const LabelGroup = ({
     return React.createElement('div', rest, categoryName, children);
 };
 
-export const Page = createElement('main');
+export const Page = ({ children, ...props }: ComponentProps) => {
+    const { isContentFilled, ...rest } = props;
+    void isContentFilled;
+    return React.createElement('main', rest, children);
+};
+export const PageGroup = ({ children, ...props }: ComponentProps) => {
+    const { stickyOnBreakpoint, ...rest } = props;
+    void stickyOnBreakpoint;
+    return React.createElement('div', rest, children);
+};
 export const PageSection = ({ children, ...props }: ComponentProps) => {
-    const { variant, isFilled, isWidthLimited, ...rest } = props;
+    const { variant, isFilled, isWidthLimited, hasBodyWrapper, padding, ...rest } = props;
     void variant;
     void isFilled;
     void isWidthLimited;
+    void hasBodyWrapper;
+    void padding;
     return React.createElement('section', rest, children);
 };
 
