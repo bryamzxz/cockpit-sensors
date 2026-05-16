@@ -95,7 +95,7 @@ describe('Application', () => {
 
         render(<Application />);
 
-        expect(screen.getAllByText('hwmon').length).toBeGreaterThan(0);
-        expect(screen.getAllByText('(active)').length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/hwmon/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/active/i).length).toBeGreaterThan(0);
     });
 });

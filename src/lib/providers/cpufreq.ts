@@ -138,10 +138,10 @@ export class CpuFreqProvider implements Provider {
                     error instanceof ProviderError
                         ? error
                         : new ProviderError(
-                              (error as Error).message || 'cpufreq read failure',
-                              'unexpected',
-                              { cause: error instanceof Error ? error : undefined },
-                          );
+                            (error as Error).message || 'cpufreq read failure',
+                            'unexpected',
+                            { cause: error instanceof Error ? error : undefined },
+                        );
                 context?.onError?.(providerError);
             }
         };
@@ -178,10 +178,10 @@ export class CpuFreqProvider implements Provider {
                     error instanceof ProviderError
                         ? error
                         : new ProviderError(
-                              (error as Error).message || 'cpufreq bootstrap failure',
-                              'unexpected',
-                              { cause: error instanceof Error ? error : undefined },
-                          );
+                            (error as Error).message || 'cpufreq bootstrap failure',
+                            'unexpected',
+                            { cause: error instanceof Error ? error : undefined },
+                        );
                 context?.onError?.(providerError);
             }
         };

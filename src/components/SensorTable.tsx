@@ -3,32 +3,44 @@ import {
     Button,
     EmptyState,
     EmptyStateBody,
-    FormSelect,
-    FormSelectOption,
     Label,
+    SearchInput,
+    ToggleGroup,
+    ToggleGroupItem,
     Toolbar,
     ToolbarContent,
     ToolbarGroup,
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
-import { DownloadIcon, OutlinedStarIcon, StarIcon } from '@patternfly/react-icons';
-// Use the ESM icon export so React receives the component instead of a CJS wrapper.
+import {
+    BarsIcon,
+    DownloadIcon,
+    OutlinedStarIcon,
+    PauseIcon,
+    PlayIcon,
+    StarIcon,
+    ThIcon,
+} from '@patternfly/react-icons';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import { EmptyStateHeader } from '@patternfly/react-core/dist/esm/components/EmptyState/EmptyStateHeader';
 
 import { Sparkline } from './Sparkline';
 import { CsvModalViewer } from './CsvModalViewer';
-import { calcStats, pushSample, Sample } from '../lib/history';
+import { SensorCard } from './SensorCard';
+import { SensorSummary, type SummaryStat } from './SensorSummary';
+import { calcStats, pushSample, type Sample } from '../lib/history';
 import type { TemperatureUnit } from '../hooks/useSensorPreferences';
 import { SENSOR_REFRESH_OPTIONS } from '../hooks/useSensorPreferences';
 import { convertForDisplay, displayUnitFor, formatMeasurement } from '../utils/units';
-import { buildHistoryCsv, HistorySeries } from '../utils/csv';
-import { getThresholdState } from '../utils/thresholds';
+import { buildHistoryCsv, type HistorySeries } from '../utils/csv';
+import { getThresholdState, type ThresholdState } from '../utils/thresholds';
 import { _ } from '../utils/cockpit';
 import type { SensorCategory, SensorChipGroup } from '../types/sensors';
 
 const MISSING_VALUE = '—';
+
+export type ViewMode = 'table' | 'cards';
+export type Density = 'compact' | 'comfortable';
 
 type TableRow = {
     key: string;
@@ -50,7 +62,7 @@ type CsvState = {
 interface PreparedRow extends TableRow {
     history: Sample[];
     sessionStats: ReturnType<typeof calcStats>;
-    threshold: ReturnType<typeof getThresholdState>;
+    threshold: ThresholdState;
     isPinned: boolean;
 }
 
@@ -77,6 +89,12 @@ const ZERO_STATES: Record<SensorCategory, { title: string; description: string }
     },
 };
 
+const REFRESH_LABELS: Record<number, string> = {
+    2000: _('2s'),
+    5000: _('5s'),
+    10000: _('10s'),
+};
+
 export interface SensorTableProps {
     groups: SensorChipGroup[];
     category: SensorCategory;
@@ -86,20 +104,33 @@ export interface SensorTableProps {
     onRefreshChange: (value: number) => void;
     pinnedKeys: readonly string[];
     onTogglePinned: (key: string) => void;
+    viewMode?: ViewMode;
+    onViewModeChange?: (mode: ViewMode) => void;
+    density?: Density;
+    onDensityChange?: (density: Density) => void;
+    isPaused?: boolean;
+    onPauseToggle?: () => void;
+    searchTerm?: string;
+    onSearchChange?: (value: string) => void;
 }
 
-const formatValue = (value: number | undefined, unit: string | undefined, preference: TemperatureUnit) => {
+const formatValueParts = (
+    value: number | undefined,
+    unit: string | undefined,
+    preference: TemperatureUnit,
+): { value: string; unit?: string } => {
     if (!Number.isFinite(value)) {
-        return MISSING_VALUE;
+        return { value: MISSING_VALUE };
     }
 
-    const converted = convertForDisplay(value, unit, preference);
-    const formatted = formatMeasurement(converted);
-    const displayUnit = displayUnitFor(unit, preference);
-    return displayUnit ? `${formatted} ${displayUnit}` : formatted;
+    const converted = convertForDisplay(value as number, unit, preference);
+    return {
+        value: formatMeasurement(converted),
+        unit: displayUnitFor(unit, preference),
+    };
 };
 
-const formatStats = (
+const formatStatsParts = (
     stats: ReturnType<typeof calcStats>,
     unit: string | undefined,
     preference: TemperatureUnit,
@@ -111,9 +142,60 @@ const formatStats = (
     const min = formatMeasurement(convertForDisplay(stats.min, unit, preference));
     const avg = formatMeasurement(convertForDisplay(stats.avg, unit, preference));
     const max = formatMeasurement(convertForDisplay(stats.max, unit, preference));
-    const displayUnit = displayUnitFor(unit, preference);
+    const display = displayUnitFor(unit, preference);
     const joined = `${min} / ${avg} / ${max}`;
-    return displayUnit ? `${joined} ${displayUnit}` : joined;
+    return display ? `${joined} ${display}` : joined;
+};
+
+const computeProgress = (
+    row: PreparedRow,
+): { percent: number; thresholdValue?: number } | null => {
+    const { reading, input } = row;
+    if (!Number.isFinite(input)) {
+        return null;
+    }
+
+    const high = reading.critical ?? reading.max;
+    if (!Number.isFinite(high) || (high as number) <= 0) {
+        return null;
+    }
+
+    const low = Number.isFinite(reading.min) ? (reading.min as number) : 0;
+    const span = (high as number) - low;
+    if (span <= 0) {
+        return null;
+    }
+
+    const percent = ((input - low) / span) * 100;
+    return { percent, thresholdValue: high as number };
+};
+
+const SUMMARY_LABELS_BY_CATEGORY: Record<SensorCategory, { total: string; max: string; avg: string }> = {
+    temperature: {
+        total: _('Active temperature sensors'),
+        max: _('Hottest reading'),
+        avg: _('Average temperature'),
+    },
+    fan: {
+        total: _('Active fans'),
+        max: _('Fastest fan'),
+        avg: _('Average fan speed'),
+    },
+    voltage: {
+        total: _('Active voltage rails'),
+        max: _('Highest voltage'),
+        avg: _('Average voltage'),
+    },
+    power: {
+        total: _('Active power sensors'),
+        max: _('Peak power draw'),
+        avg: _('Average power draw'),
+    },
+    unknown: {
+        total: _('Active sensors'),
+        max: _('Highest value'),
+        avg: _('Average value'),
+    },
 };
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
@@ -127,6 +209,14 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     onRefreshChange,
     pinnedKeys,
     onTogglePinned,
+    viewMode = 'table',
+    onViewModeChange,
+    density = 'comfortable',
+    onDensityChange,
+    isPaused = false,
+    onPauseToggle,
+    searchTerm = '',
+    onSearchChange,
 }) => {
     const historyRef = React.useRef(new Map<string, Sample[]>());
     const [historyVersion, setHistoryVersion] = React.useState(0);
@@ -156,7 +246,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         [groups],
     );
 
-    const sortedRows = React.useMemo<PreparedRow[]>(() => {
+    const allPreparedRows = React.useMemo<PreparedRow[]>(() => {
         const pinnedSet = new Set(pinnedKeys);
         const history = historyRef.current;
         return rows
@@ -168,29 +258,45 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     isPinned: pinnedSet.has(row.key),
                 }))
                 .sort((a, b) => {
-                    const aPinned = pinnedSet.has(a.key);
-                    const bPinned = pinnedSet.has(b.key);
-                    if (aPinned && bPinned) {
-                        const orderA = pinnedIndex.get(a.key) ?? 0;
-                        const orderB = pinnedIndex.get(b.key) ?? 0;
-                        return orderA - orderB;
+                    if (a.isPinned && b.isPinned) {
+                        return (pinnedIndex.get(a.key) ?? 0) - (pinnedIndex.get(b.key) ?? 0);
                     }
-                    if (aPinned) {
-                        return -1;
-                    }
-                    if (bPinned) {
-                        return 1;
+                    if (a.isPinned) return -1;
+                    if (b.isPinned) return 1;
+
+                    const severityOrder: Record<ThresholdState, number> = {
+                        danger: 0,
+                        warning: 1,
+                        normal: 2,
+                    };
+                    const severityDiff = severityOrder[a.threshold] - severityOrder[b.threshold];
+                    if (severityDiff !== 0) {
+                        return severityDiff;
                     }
 
                     const chipCompare = collator.compare(a.chip, b.chip);
-                    if (chipCompare !== 0) {
-                        return chipCompare;
-                    }
+                    if (chipCompare !== 0) return chipCompare;
                     return collator.compare(a.readingLabel, b.readingLabel);
                 });
     }, [rows, pinnedKeys, pinnedIndex]);
 
+    const filteredRows = React.useMemo<PreparedRow[]>(() => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) {
+            return allPreparedRows;
+        }
+        return allPreparedRows.filter(row =>
+            row.chip.toLowerCase().includes(term)
+            || row.readingLabel.toLowerCase().includes(term)
+            || (row.source ?? '').toLowerCase().includes(term),
+        );
+    }, [allPreparedRows, searchTerm]);
+
     React.useEffect(() => {
+        if (isPaused) {
+            return;
+        }
+
         const history = historyRef.current;
         const activeKeys = new Set<string>();
         let changed = false;
@@ -222,15 +328,65 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         if (changed) {
             setHistoryVersion(version => version + 1);
         }
-    }, [rows]);
+    }, [rows, isPaused]);
 
-    const handleRefreshChange = React.useCallback(
-        (value: string) => {
-            const parsed = Number.parseInt(value, 10);
-            onRefreshChange(Number.isFinite(parsed) ? parsed : refreshMs);
-        },
-        [onRefreshChange, refreshMs],
-    );
+    const summaryStats = React.useMemo<SummaryStat[]>(() => {
+        if (allPreparedRows.length === 0) {
+            return [];
+        }
+
+        const labels = SUMMARY_LABELS_BY_CATEGORY[category] ?? SUMMARY_LABELS_BY_CATEGORY.unknown;
+        const values = allPreparedRows
+                .filter(row => Number.isFinite(row.input))
+                .map(row => ({
+                    converted: convertForDisplay(row.input, row.readingUnit, unit),
+                    unit: displayUnitFor(row.readingUnit, unit),
+                    threshold: row.threshold,
+                    row,
+                }));
+
+        if (values.length === 0) {
+            return [
+                { label: labels.total, value: String(allPreparedRows.length) },
+            ];
+        }
+
+        const sorted = [...values].sort((a, b) => b.converted - a.converted);
+        const hottest = sorted[0];
+        const avg = values.reduce((acc, v) => acc + v.converted, 0) / values.length;
+
+        const warningCount = values.filter(v => v.threshold === 'warning').length;
+        const dangerCount = values.filter(v => v.threshold === 'danger').length;
+        const severity: ThresholdState = dangerCount > 0
+            ? 'danger'
+            : warningCount > 0 ? 'warning' : 'normal';
+
+        return [
+            {
+                label: labels.total,
+                value: String(allPreparedRows.length),
+                hint: severity === 'normal'
+                    ? _('All within range')
+                    : severity === 'warning'
+                        ? _('Approaching threshold')
+                        : _('Threshold exceeded'),
+                severity,
+            },
+            {
+                label: labels.max,
+                value: formatMeasurement(hottest.converted),
+                unit: hottest.unit,
+                hint: hottest.row.chip ? `${hottest.row.chip} · ${hottest.row.readingLabel}` : hottest.row.readingLabel,
+                severity: hottest.threshold,
+            },
+            {
+                label: labels.avg,
+                value: formatMeasurement(avg),
+                unit: hottest.unit,
+                hint: `${values.length} ${_('samples')}`,
+            },
+        ];
+    }, [allPreparedRows, category, unit]);
 
     const [csvView, setCsvView] = React.useState<CsvState>({ open: false, text: '', filename: '' });
 
@@ -281,7 +437,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
     const handleExport = React.useCallback(() => {
         const history = historyRef.current;
-        const series: HistorySeries[] = sortedRows.map(row => {
+        const series: HistorySeries[] = allPreparedRows.map(row => {
             const buffer = history.get(row.key) ?? [];
 
             const samples = buffer.map(sample => ({
@@ -308,87 +464,166 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
         attemptDownload(csv, filename);
         setCsvView({ open: true, text: csv, filename });
-    }, [attemptDownload, sortedRows, unit]);
-
-    const handleUnitToggle = React.useCallback(
-        (nextUnit: TemperatureUnit) => {
-            onUnitChange(nextUnit);
-        },
-        [onUnitChange],
-    );
+    }, [attemptDownload, allPreparedRows, unit]);
 
     const exportDisabled = React.useMemo(() => {
         void historyVersion;
         const history = historyRef.current;
-        for (const row of sortedRows) {
+        for (const row of allPreparedRows) {
             if ((history.get(row.key) ?? []).length > 0) {
                 return false;
             }
         }
         return true;
-    }, [sortedRows, historyVersion]);
+    }, [allPreparedRows, historyVersion]);
+
+    const handleSearchChange = React.useCallback(
+        (_event: React.FormEvent<HTMLInputElement>, value: string) => {
+            onSearchChange?.(value);
+        },
+        [onSearchChange],
+    );
+
+    const handleSearchClear = React.useCallback(() => {
+        onSearchChange?.('');
+    }, [onSearchChange]);
 
     const zeroState = ZERO_STATES[category] ?? ZERO_STATES.unknown;
+    const hasResults = filteredRows.length > 0;
+    const hasAnyData = allPreparedRows.length > 0;
 
     return (
-        <div className="sensor-table" data-component="sensor-table">
+        <div className="sensor-table-region" data-component="sensor-table">
+            <SensorSummary stats={summaryStats} />
+
             <Toolbar
                 className="sensor-toolbar"
                 role="region"
                 aria-label={_('Sensor table controls')}
             >
                 <ToolbarContent>
-                    <ToolbarGroup>
+                    <ToolbarItem>
+                        <SearchInput
+                            className="sensor-toolbar__search"
+                            placeholder={_('Filter by chip or sensor')}
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            onClear={handleSearchClear}
+                            aria-label={_('Filter sensors')}
+                        />
+                    </ToolbarItem>
+
+                    {onViewModeChange && (
                         <ToolbarItem>
-                            <label className="sensor-toolbar__label" htmlFor="sensor-refresh-select">
-                                {_('Refresh interval')}
-                            </label>
-                            <FormSelect
-                                value={String(refreshMs)}
-                                onChange={handleRefreshChange}
-                                aria-label={_('Refresh interval selector')}
-                                id="sensor-refresh-select"
-                            >
-                                {SENSOR_REFRESH_OPTIONS.map(option => (
-                                    <FormSelectOption
-                                        key={option}
-                                        value={option}
-                                        label={option === 10000 ? _('Every 10 seconds') : option === 5000 ? _('Every 5 seconds') : _('Every 2 seconds')}
-                                    />
-                                ))}
-                            </FormSelect>
+                            <ToggleGroup aria-label={_('Select view mode')}>
+                                <ToggleGroupItem
+                                    icon={<BarsIcon />}
+                                    aria-label={_('Show as table')}
+                                    buttonId="sensor-view-table"
+                                    isSelected={viewMode === 'table'}
+                                    onChange={() => onViewModeChange('table')}
+                                    text={_('Table')}
+                                />
+                                <ToggleGroupItem
+                                    icon={<ThIcon />}
+                                    aria-label={_('Show as cards')}
+                                    buttonId="sensor-view-cards"
+                                    isSelected={viewMode === 'cards'}
+                                    onChange={() => onViewModeChange('cards')}
+                                    text={_('Cards')}
+                                />
+                            </ToggleGroup>
+                        </ToolbarItem>
+                    )}
+
+                    <ToolbarItem>
+                        <span className="sensor-toolbar__group-label">{_('Refresh')}</span>
+                        <ToggleGroup aria-label={_('Refresh interval')}>
+                            {SENSOR_REFRESH_OPTIONS.map(option => (
+                                <ToggleGroupItem
+                                    key={option}
+                                    text={REFRESH_LABELS[option] ?? `${option / 1000}s`}
+                                    buttonId={`sensor-refresh-${option}`}
+                                    isSelected={refreshMs === option}
+                                    onChange={() => onRefreshChange(option)}
+                                    aria-label={`${option / 1000} ${_('seconds')}`}
+                                />
+                            ))}
+                        </ToggleGroup>
+                    </ToolbarItem>
+
+                    {category === 'temperature' && (
+                        <ToolbarItem>
+                            <span className="sensor-toolbar__group-label">{_('Unit')}</span>
+                            <ToggleGroup aria-label={_('Temperature unit')}>
+                                <ToggleGroupItem
+                                    text="°C"
+                                    buttonId="sensor-unit-c"
+                                    isSelected={unit === 'C'}
+                                    onChange={() => onUnitChange('C')}
+                                    aria-label={_('Celsius')}
+                                />
+                                <ToggleGroupItem
+                                    text="°F"
+                                    buttonId="sensor-unit-f"
+                                    isSelected={unit === 'F'}
+                                    onChange={() => onUnitChange('F')}
+                                    aria-label={_('Fahrenheit')}
+                                />
+                            </ToggleGroup>
+                        </ToolbarItem>
+                    )}
+
+                    {onPauseToggle && (
+                        <ToolbarItem>
+                            <Tooltip content={isPaused ? _('Resume live updates') : _('Pause live updates')}>
+                                <Button
+                                    variant={isPaused ? 'primary' : 'secondary'}
+                                    onClick={onPauseToggle}
+                                    icon={isPaused ? <PlayIcon /> : <PauseIcon />}
+                                    aria-label={isPaused ? _('Resume') : _('Pause')}
+                                    aria-pressed={isPaused}
+                                >
+                                    {isPaused ? _('Resume') : _('Pause')}
+                                </Button>
+                            </Tooltip>
+                        </ToolbarItem>
+                    )}
+
+                    {onDensityChange && (
+                        <ToolbarItem visibility={{ default: 'hidden', md: 'visible' }}>
+                            <span className="sensor-toolbar__group-label">{_('Density')}</span>
+                            <ToggleGroup aria-label={_('Table density')}>
+                                <ToggleGroupItem
+                                    text={_('Compact')}
+                                    buttonId="sensor-density-compact"
+                                    isSelected={density === 'compact'}
+                                    onChange={() => onDensityChange('compact')}
+                                />
+                                <ToggleGroupItem
+                                    text={_('Roomy')}
+                                    buttonId="sensor-density-comfortable"
+                                    isSelected={density === 'comfortable'}
+                                    onChange={() => onDensityChange('comfortable')}
+                                />
+                            </ToggleGroup>
+                        </ToolbarItem>
+                    )}
+
+                    <ToolbarGroup align={{ default: 'alignEnd' }}>
+                        <ToolbarItem>
+                            <Tooltip content={_('Download session history as CSV')}>
+                                <Button
+                                    onClick={handleExport}
+                                    variant="secondary"
+                                    icon={<DownloadIcon />}
+                                    isDisabled={exportDisabled}
+                                >
+                                    {_('Export CSV')}
+                                </Button>
+                            </Tooltip>
                         </ToolbarItem>
                     </ToolbarGroup>
-                    {category === 'temperature' && (
-                        <ToolbarGroup>
-                            <ToolbarItem>
-                                <label className="sensor-toolbar__label" htmlFor="sensor-unit-select">
-                                    {_('Temperature unit')}
-                                </label>
-                                <FormSelect
-                                    value={unit}
-                                    onChange={value => handleUnitToggle(value as TemperatureUnit)}
-                                    aria-label={_('Temperature unit selector')}
-                                    id="sensor-unit-select"
-                                >
-                                    <FormSelectOption value="C" label={_('Degrees Celsius (°C)')} />
-                                    <FormSelectOption value="F" label={_('Degrees Fahrenheit (°F)')} />
-                                </FormSelect>
-                            </ToolbarItem>
-                        </ToolbarGroup>
-                    )}
-                    <ToolbarItem alignment={{ default: 'alignRight' }}>
-                        <Tooltip content={_('Download session history as CSV')}>
-                            <Button
-                                onClick={handleExport}
-                                variant="secondary"
-                                icon={<DownloadIcon />}
-                                isDisabled={exportDisabled}
-                            >
-                                {_('Export CSV')}
-                            </Button>
-                        </Tooltip>
-                    </ToolbarItem>
                 </ToolbarContent>
             </Toolbar>
 
@@ -400,46 +635,117 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                 onRetryDownload={csvView.text ? retryDownload : undefined}
             />
 
-            {sortedRows.length === 0 ? (
+            {!hasAnyData && (
                 <div className="sensor-zero-state">
-                    <EmptyState variant="sm">
-                        <EmptyStateHeader icon={SearchIcon} titleText={zeroState.title} headingLevel="h3" />
+                    <EmptyState
+                        variant="sm"
+                        titleText={zeroState.title}
+                        icon={SearchIcon}
+                        headingLevel="h3"
+                    >
                         <EmptyStateBody>{zeroState.description}</EmptyStateBody>
                     </EmptyState>
                 </div>
-            ) : (
-                <div className="pf-c-table-wrapper" role="presentation">
-                    <table className="pf-c-table pf-m-compact pf-m-grid-md" role="grid" aria-label={_('Sensor readings')}>
+            )}
+
+            {hasAnyData && !hasResults && (
+                <div className="sensor-zero-state">
+                    <EmptyState
+                        variant="sm"
+                        titleText={_('No matches found')}
+                        icon={SearchIcon}
+                        headingLevel="h3"
+                    >
+                        <EmptyStateBody>
+                            {_('Try a different filter or clear the search to view all sensors.')}
+                        </EmptyStateBody>
+                    </EmptyState>
+                </div>
+            )}
+
+            {hasResults && viewMode === 'cards' && (
+                <section className="sensor-grid" aria-label={_('Sensor readings')}>
+                    {filteredRows.map(row => {
+                        const valueParts = formatValueParts(row.input, row.readingUnit, unit);
+                        const statsLine = formatStatsParts(row.sessionStats, row.readingUnit, unit);
+                        const sparkData = row.history.map(sample => ({
+                            t: sample.t,
+                            v: convertForDisplay(sample.v, row.readingUnit, unit),
+                        }));
+                        const progress = computeProgress(row);
+                        const thresholdDisplay = progress?.thresholdValue !== undefined
+                            ? convertForDisplay(progress.thresholdValue, row.readingUnit, unit)
+                            : undefined;
+
+                        return (
+                            <SensorCard
+                                key={row.key}
+                                sensorKey={row.key}
+                                chip={row.chip}
+                                sensorLabel={row.readingLabel}
+                                source={row.source}
+                                valueDisplay={valueParts.value}
+                                unitDisplay={valueParts.unit}
+                                threshold={row.threshold}
+                                history={sparkData}
+                                historyUnit={valueParts.unit}
+                                statsLine={statsLine}
+                                isPinned={row.isPinned}
+                                onTogglePin={onTogglePinned}
+                                progressPercent={progress?.percent}
+                                thresholdLine={thresholdDisplay}
+                            />
+                        );
+                    })}
+                </section>
+            )}
+
+            {hasResults && viewMode === 'table' && (
+                <div className="sensor-table-wrapper">
+                    <table
+                        className={`sensor-table sensor-table--${density}`}
+                        role="grid"
+                        aria-label={_('Sensor readings')}
+                    >
                         <colgroup>
-                            <col style={{ width: '2.5rem' }} />
-                            <col style={{ width: '22%' }} />
-                            <col style={{ width: '16%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '22%' }} />
-                            <col style={{ width: '14%' }} />
-                            <col style={{ width: '10%' }} />
+                            <col style={{ inlineSize: '2.5rem' }} />
+                            <col style={{ inlineSize: '24%' }} />
+                            <col style={{ inlineSize: '16%' }} />
+                            <col style={{ inlineSize: '14%' }} />
+                            <col style={{ inlineSize: '20%' }} />
+                            <col style={{ inlineSize: '16%' }} />
+                            <col style={{ inlineSize: '10%' }} />
                         </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col" aria-label={_('Pinned status')} />
                                 <th scope="col">{_('Chip')}</th>
                                 <th scope="col">{_('Sensor')}</th>
-                                <th scope="col">{_('Input')}</th>
-                                <th scope="col">{_('Session min/avg/max')}</th>
+                                <th scope="col">{_('Current')}</th>
+                                <th scope="col">{_('Session min · avg · max')}</th>
                                 <th scope="col">{_('Trend')}</th>
                                 <th scope="col">{_('Source')}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {sortedRows.map(row => {
-                                const history = historyRef.current.get(row.key) ?? [];
-                                const sparklineData = history.map(sample => ({
+                            {filteredRows.map(row => {
+                                const valueParts = formatValueParts(row.input, row.readingUnit, unit);
+                                const statsLine = formatStatsParts(row.sessionStats, row.readingUnit, unit);
+                                const sparkData = row.history.map(sample => ({
                                     t: sample.t,
                                     v: convertForDisplay(sample.v, row.readingUnit, unit),
                                 }));
+                                const progress = computeProgress(row);
+                                const thresholdDisplay = progress?.thresholdValue !== undefined
+                                    ? convertForDisplay(progress.thresholdValue, row.readingUnit, unit)
+                                    : undefined;
 
                                 return (
-                                    <tr key={row.key}>
+                                    <tr
+                                        key={row.key}
+                                        data-pinned={row.isPinned}
+                                        data-threshold={row.threshold}
+                                    >
                                         <td data-label={_('Pinned status')}>
                                             <Tooltip
                                                 content={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
@@ -449,6 +755,9 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                                     variant="plain"
                                                     onClick={() => onTogglePinned(row.key)}
                                                     aria-label={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
+                                                    aria-pressed={row.isPinned}
+                                                    className="sensor-row__pin-btn"
+                                                    data-pinned={row.isPinned}
                                                     data-testid="sensor-pin-toggle"
                                                 >
                                                     {row.isPinned ? <StarIcon /> : <OutlinedStarIcon />}
@@ -456,28 +765,55 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                             </Tooltip>
                                         </td>
                                         <td data-label={_('Chip')}>
-                                            <span className="sensor-chip">
-                                                <span>{row.chip}</span>
+                                            <div className="sensor-row__chip-label">
+                                                <span className="sensor-row__chip-name">{row.chip}</span>
                                                 {row.source && (
                                                     <Label color="grey" isCompact>
                                                         {row.source}
                                                     </Label>
                                                 )}
-                                            </span>
+                                            </div>
                                         </td>
-                                        <td data-label={_('Sensor')}>{row.readingLabel}</td>
-                                        <td data-label={_('Input')}>
+                                        <td data-label={_('Sensor')}>
+                                            <span className="sensor-row__sensor-name">{row.readingLabel}</span>
+                                        </td>
+                                        <td data-label={_('Current')}>
                                             <span className={`sensor-reading sensor-reading--${row.threshold}`}>
-                                                {formatValue(row.input, row.readingUnit, unit)}
+                                                <span>{valueParts.value}</span>
+                                                {valueParts.unit && (
+                                                    <span className="sensor-reading__unit">{valueParts.unit}</span>
+                                                )}
                                             </span>
+                                            {progress && (
+                                                <div
+                                                    className={`sensor-progress sensor-progress--${row.threshold}`}
+                                                    role="progressbar"
+                                                    aria-valuenow={Math.round(progress.percent)}
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={100}
+                                                    aria-label={_('Range against threshold')}
+                                                >
+                                                    <span
+                                                        className="sensor-progress__bar"
+                                                        style={{
+                                                            inlineSize: `${Math.max(2, Math.min(100, progress.percent))}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
                                         </td>
-                                        <td data-label={_('Session min/avg/max')}>
-                                            <span className="sensor-reading">
-                                                {formatStats(row.sessionStats, row.readingUnit, unit)}
-                                            </span>
+                                        <td data-label={_('Session min · avg · max')}>
+                                            <span className="sensor-stats">{statsLine}</span>
                                         </td>
                                         <td data-label={_('Trend')}>
-                                            <Sparkline data={sparklineData} />
+                                            <Sparkline
+                                                data={sparkData}
+                                                threshold={row.threshold}
+                                                unit={valueParts.unit}
+                                                thresholdLine={thresholdDisplay}
+                                                width={140}
+                                                height={32}
+                                            />
                                         </td>
                                         <td data-label={_('Source')}>{row.source ?? MISSING_VALUE}</td>
                                     </tr>

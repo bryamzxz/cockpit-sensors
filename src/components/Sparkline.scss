@@ -1,26 +1,65 @@
-/* Sparkline listo para tema claro/oscuro (PatternFly v6) */
+/* Sparkline tuned for PF6 light/dark themes */
 .sensor-sparkline {
     display: block;
-    background: transparent;            /* nada de fondo negro/blanco */
+    background: transparent;
     color: var(--sensor-sparkline-stroke);
+    overflow: visible;
 }
 
-/* El trazo de la serie hereda el color (currentColor) */
-.sensor-sparkline path,
-.sensor-sparkline polyline {
+.sensor-sparkline--warning { color: var(--sensor-sparkline-warning); }
+.sensor-sparkline--danger { color: var(--sensor-sparkline-danger); }
+.sensor-sparkline--empty { color: var(--sensor-sparkline-axis); }
+
+.sensor-sparkline polyline,
+.sensor-sparkline path:not(.sensor-sparkline__area) {
     stroke: currentColor;
     fill: none;
-    stroke-width: 1.5;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
 }
 
-/* Eje/base del sparkline (si se dibuja) */
-.sensor-sparkline line.axis,
-.sensor-sparkline .axis {
-    stroke: var(--sensor-sparkline-axis);
+.sensor-sparkline__area {
+    stroke: none;
+    opacity: 0.65;
 }
 
-/* Por si hay un rectángulo de fondo en el SVG */
-.sensor-sparkline .bg {
-    fill: transparent;
+.sensor-sparkline__gradient-top {
+    stop-color: currentColor;
+    stop-opacity: 0.35;
+}
+
+.sensor-sparkline__gradient-bottom {
+    stop-color: currentColor;
+    stop-opacity: 0;
+}
+
+.sensor-sparkline__baseline {
+    stroke: var(--sensor-sparkline-axis);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.6;
+}
+
+.sensor-sparkline__threshold {
+    stroke: color-mix(in srgb, var(--sensor-sparkline-danger) 80%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.7;
+}
+
+.sensor-sparkline__cursor {
+    stroke: var(--sensor-sparkline-axis);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.sensor-sparkline__dot {
+    fill: currentColor;
+    stroke: var(--pf-t--global--background--color--primary--default, #fff);
+    stroke-width: 1.5;
 }

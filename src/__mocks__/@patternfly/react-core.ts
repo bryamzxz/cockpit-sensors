@@ -9,33 +9,55 @@ const createElement = (tag: keyof JSX.IntrinsicElements) =>
         return React.createElement(tag, props, children);
     };
 
-export const Alert = ({ title, children, ...props }: React.PropsWithChildren<{ title?: React.ReactNode } & AnyProps>) => {
-    const { variant, isInline, ...rest } = props;
+export const Alert = ({
+    title,
+    children,
+    ...props
+}: React.PropsWithChildren<{ title?: React.ReactNode } & AnyProps>) => {
+    const { variant, isInline, actionLinks, ...rest } = props;
     void variant;
     void isInline;
-    return React.createElement('section', rest, title, children);
+    return React.createElement('section', rest, title, children, actionLinks);
 };
 
 export const AlertActionLink = createElement('button');
 export const AlertVariant = { info: 'info', warning: 'warning', danger: 'danger' } as const;
-export const Button = ({ children, isDisabled, ...props }: ComponentProps & { isDisabled?: boolean }) =>
-    React.createElement('button', { ...props, disabled: isDisabled }, children);
+
+export const Button = ({
+    children,
+    isDisabled,
+    icon,
+    ...props
+}: ComponentProps & { isDisabled?: boolean; icon?: React.ReactNode }) =>
+    React.createElement(
+        'button',
+        { ...props, disabled: isDisabled, type: 'button' },
+        icon,
+        children,
+    );
+
 export const ClipboardCopy = ({ children }: ComponentProps) => React.createElement('pre', null, children);
 export const ClipboardCopyVariant = { expansion: 'expansion' } as const;
 export const CodeBlock = createElement('pre');
 export const CodeBlockCode = ({ children, ...props }: ComponentProps) =>
     React.createElement('code', props, children);
 export const Content = createElement('section');
-export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean }) => {
-    const { isCompact, ...rest } = props;
+
+export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean; color?: string }) => {
+    const { isCompact, color, ...rest } = props;
     void isCompact;
+    void color;
     return React.createElement('span', rest, children);
 };
-export const LabelGroup = ({ children, ...props }: ComponentProps & { categoryName?: React.ReactNode }) => {
+
+export const LabelGroup = ({
+    children,
+    ...props
+}: ComponentProps & { categoryName?: React.ReactNode }) => {
     const { categoryName, ...rest } = props;
-    void categoryName;
-    return React.createElement('div', rest, children);
+    return React.createElement('div', rest, categoryName, children);
 };
+
 export const Page = createElement('main');
 export const PageSection = ({ children, ...props }: ComponentProps) => {
     const { variant, isFilled, isWidthLimited, ...rest } = props;
@@ -44,13 +66,55 @@ export const PageSection = ({ children, ...props }: ComponentProps) => {
     void isWidthLimited;
     return React.createElement('section', rest, children);
 };
-export const Spinner = createElement('div');
-export const Tab = ({ children }: ComponentProps) => React.createElement(React.Fragment, null, children);
-export const TabTitleText = ({ children }: ComponentProps) => React.createElement(React.Fragment, null, children);
-export const Tabs = ({ children }: ComponentProps) => React.createElement(React.Fragment, null, children);
 
-export const EmptyState = ({ children }: ComponentProps) => React.createElement('div', null, children);
+export const Spinner = createElement('div');
+
+export const Tab = ({ children, title }: ComponentProps & { title?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, title, children);
+export const TabTitleText = ({ children }: ComponentProps) =>
+    React.createElement(React.Fragment, null, children);
+export const Tabs = ({ children, ...rest }: ComponentProps) => {
+    const { activeKey, onSelect, ...passthrough } = rest;
+    void activeKey;
+    void onSelect;
+    return React.createElement('div', passthrough, children);
+};
+
+interface EmptyStateProps extends ComponentProps {
+    titleText?: React.ReactNode;
+    icon?: React.ComponentType | React.ReactNode;
+    headingLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    variant?: string;
+}
+
+export const EmptyState = ({
+    children,
+    titleText,
+    icon,
+    headingLevel = 'h2',
+    ...rest
+}: EmptyStateProps) => {
+    void rest.variant;
+    let iconElement: React.ReactNode = null;
+    if (icon) {
+        if (typeof icon === 'function') {
+            const IconComponent = icon as React.ComponentType;
+            iconElement = React.createElement(IconComponent);
+        } else if (React.isValidElement(icon)) {
+            iconElement = icon;
+        }
+    }
+    return React.createElement(
+        'div',
+        rest,
+        iconElement,
+        titleText ? React.createElement(headingLevel, null, titleText) : null,
+        children,
+    );
+};
+
 export const EmptyStateBody = ({ children }: ComponentProps) => React.createElement('p', null, children);
+
 type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
 export const EmptyStateHeader = ({
@@ -76,6 +140,7 @@ export const EmptyStateHeader = ({
     }
     return React.createElement(headingLevel, null, ...children);
 };
+
 export const EmptyStateIcon = ({ icon }: { icon?: React.ElementType }) => {
     const IconComponent: React.ElementType = icon ?? 'span';
     return React.createElement(IconComponent, null);
@@ -83,26 +148,52 @@ export const EmptyStateIcon = ({ icon }: { icon?: React.ElementType }) => {
 
 export const Toolbar = createElement('div');
 export const ToolbarContent = createElement('div');
-export const ToolbarGroup = createElement('div');
-export const ToolbarItem = createElement('div');
+export const ToolbarGroup = ({ children, ...props }: ComponentProps) => {
+    const { align, alignItems, variant, ...rest } = props;
+    void align;
+    void alignItems;
+    void variant;
+    return React.createElement('div', rest, children);
+};
+export const ToolbarItem = ({ children, ...props }: ComponentProps) => {
+    const { align, alignItems, visibility, variant, ...rest } = props;
+    void align;
+    void alignItems;
+    void visibility;
+    void variant;
+    return React.createElement('div', rest, children);
+};
 
-export const ModalVariant = { medium: 'medium', small: 'small', large: 'large' } as const;
+export const ModalVariant = { medium: 'medium', small: 'small', large: 'large', default: 'default' } as const;
+
 export const Modal = ({
     children,
     isOpen = true,
     actions,
     ...props
 }: React.PropsWithChildren<{ isOpen?: boolean; actions?: React.ReactNode[] } & AnyProps>) => {
-    const { onClose, variant, title, description, ...rest } = props;
+    const { onClose, variant, ...rest } = props;
     void onClose;
     void variant;
-    void title;
-    void description;
     if (!isOpen) {
         return null;
     }
     return React.createElement('div', rest, children, actions);
 };
+
+export const ModalHeader = ({
+    title,
+    description,
+    ...props
+}: ComponentProps & { title?: React.ReactNode; description?: React.ReactNode }) => {
+    const { labelId, descriptorId, ...rest } = props;
+    void labelId;
+    void descriptorId;
+    return React.createElement('header', rest, title, description);
+};
+
+export const ModalBody = createElement('div');
+export const ModalFooter = createElement('footer');
 
 interface FormSelectProps extends ComponentProps {
     value?: string;
@@ -115,12 +206,85 @@ export const FormSelect = ({ value, onChange, children, ...props }: FormSelectPr
         {
             ...props,
             value,
-            onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onChange?.(event.target.value, event),
+            onChange: (event: React.ChangeEvent<HTMLSelectElement>) =>
+                onChange?.(event.target.value, event),
         },
         children,
     );
 
-export const FormSelectOption = ({ value, label }: { value: string | number; label?: React.ReactNode }) =>
-    React.createElement('option', { value }, label ?? value);
+export const FormSelectOption = ({
+    value,
+    label,
+}: {
+    value: string | number;
+    label?: React.ReactNode;
+}) => React.createElement('option', { value }, label ?? value);
 
-export const Tooltip = ({ children }: ComponentProps) => React.createElement(React.Fragment, null, children);
+export const Tooltip = ({ children }: ComponentProps) =>
+    React.createElement(React.Fragment, null, children);
+
+interface SearchInputProps extends ComponentProps {
+    value?: string;
+    onChange?: (event: React.FormEvent<HTMLInputElement>, value: string) => void;
+    onClear?: () => void;
+    placeholder?: string;
+}
+
+export const SearchInput = ({ value, onChange, onClear, placeholder, ...props }: SearchInputProps) => {
+    void onClear;
+    return React.createElement(
+        'div',
+        props,
+        React.createElement('input', {
+            type: 'search',
+            value,
+            placeholder,
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+                onChange?.(event, event.target.value),
+            'aria-label': props['aria-label'] as string | undefined,
+        }),
+    );
+};
+
+export const ToggleGroup = ({ children, ...props }: ComponentProps) => {
+    const { 'aria-label': ariaLabel, ...rest } = props;
+    return React.createElement(
+        'div',
+        { role: 'group', 'aria-label': ariaLabel as string | undefined, ...rest },
+        children,
+    );
+};
+
+interface ToggleGroupItemProps extends ComponentProps {
+    text?: React.ReactNode;
+    icon?: React.ReactNode;
+    isSelected?: boolean;
+    onChange?: (event: React.MouseEvent, selected: boolean) => void;
+    buttonId?: string;
+}
+
+export const ToggleGroupItem = ({
+    text,
+    icon,
+    isSelected,
+    onChange,
+    buttonId,
+    ...props
+}: ToggleGroupItemProps) => {
+    const { iconPosition, isDisabled, ...rest } = props;
+    void iconPosition;
+    return React.createElement(
+        'button',
+        {
+            ...rest,
+            type: 'button',
+            id: buttonId,
+            disabled: isDisabled,
+            'aria-pressed': Boolean(isSelected),
+            'data-selected': Boolean(isSelected),
+            onClick: (event: React.MouseEvent) => onChange?.(event, !isSelected),
+        },
+        icon,
+        text,
+    );
+};

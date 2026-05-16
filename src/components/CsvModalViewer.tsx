@@ -1,15 +1,17 @@
 import React from 'react';
 import {
-    Modal,
-    ModalVariant,
     Button,
     CodeBlock,
     CodeBlockCode,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    ModalVariant,
     Tooltip,
 } from '@patternfly/react-core';
 import { ClipboardIcon, DownloadIcon } from '@patternfly/react-icons';
 import { _ } from '../utils/cockpit';
-import './CsvModalViewer.scss';
 
 type Props = {
     isOpen: boolean;
@@ -26,11 +28,12 @@ export const CsvModalViewer: React.FC<Props> = ({
     onClose,
     onRetryDownload,
 }) => {
-    const filenameId = React.useId();
+    const titleId = React.useId();
+    const descriptionId = React.useId();
 
     const handleCopy = React.useCallback(() => {
         navigator.clipboard?.writeText(text).catch(() => {
-            // Silencioso: algunos navegadores requieren gesto del usuario.
+            /* Silent: some browsers require a user gesture */
         });
     }, [text]);
 
@@ -40,37 +43,43 @@ export const CsvModalViewer: React.FC<Props> = ({
             variant={ModalVariant.large}
             isOpen={isOpen}
             onClose={onClose}
-            title={_(`Export CSV`)}
-            aria-label={_(`CSV preview`)}
-            aria-describedby={filename ? filenameId : undefined}
+            aria-labelledby={titleId}
+            aria-describedby={filename ? descriptionId : undefined}
         >
-            <div className="csv-modal__body">
-                {filename && (
-                    <p id={filenameId} className="csv-modal__filename">
+            <ModalHeader
+                title={_('Export CSV')}
+                labelId={titleId}
+                description={filename ? (
+                    <span id={descriptionId} className="csv-modal__filename">
                         {filename}
-                    </p>
-                )}
-                <CodeBlock>
-                    <CodeBlockCode aria-label={_(`CSV content`)}>{text}</CodeBlockCode>
-                </CodeBlock>
-            </div>
-            <div className="csv-modal__actions">
-                <Tooltip content={_(`Copy to clipboard`)}>
+                    </span>
+                ) : undefined}
+                descriptorId={filename ? descriptionId : undefined}
+            />
+            <ModalBody>
+                <div className="csv-modal__code-wrapper">
+                    <CodeBlock>
+                        <CodeBlockCode aria-label={_('CSV content')}>{text}</CodeBlockCode>
+                    </CodeBlock>
+                </div>
+            </ModalBody>
+            <ModalFooter>
+                <Tooltip content={_('Copy to clipboard')}>
                     <Button variant="secondary" onClick={handleCopy} icon={<ClipboardIcon />}>
-                        {_(`Copy`)}
+                        {_('Copy')}
                     </Button>
                 </Tooltip>
                 {onRetryDownload && (
-                    <Tooltip content={_(`Try download again`)}>
+                    <Tooltip content={_('Try download again')}>
                         <Button variant="primary" onClick={onRetryDownload} icon={<DownloadIcon />}>
-                            {_(`Download`)}
+                            {_('Download')}
                         </Button>
                     </Tooltip>
                 )}
                 <Button variant="link" onClick={onClose}>
-                    {_(`Close`)}
+                    {_('Close')}
                 </Button>
-            </div>
+            </ModalFooter>
         </Modal>
     );
 };
