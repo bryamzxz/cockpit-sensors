@@ -35,8 +35,10 @@ body {
 .sensor-app {
     display: flex;
     flex-direction: column;
-    min-block-size: 100%;
+    block-size: 100%;
     inline-size: 100%;
+    /* Contain the scroll so the hero stays visible while .sensor-app__content scrolls. */
+    overflow: hidden;
 }
 
 .sensor-app__hero {
@@ -159,6 +161,9 @@ body {
 
 .sensor-app__content {
     flex: 1 1 auto;
+    /* min-block-size: 0 lets this flex child shrink so overflow-y: auto can trigger. */
+    min-block-size: 0;
+    overflow-y: auto;
     padding: var(--pf-t--global--spacer--md, 0.75rem) var(--pf-t--global--spacer--xl, 1.5rem) var(--pf-t--global--spacer--xl, 1.5rem);
     display: flex;
     flex-direction: column;
