@@ -12,9 +12,10 @@ const createElement = (tag: keyof JSX.IntrinsicElements) =>
 export const Alert = ({
     title,
     children,
+    actionLinks,
     ...props
-}: React.PropsWithChildren<{ title?: React.ReactNode } & AnyProps>) => {
-    const { variant, isInline, actionLinks, ...rest } = props;
+}: React.PropsWithChildren<{ title?: React.ReactNode; actionLinks?: React.ReactNode } & AnyProps>) => {
+    const { variant, isInline, ...rest } = props;
     void variant;
     void isInline;
     return React.createElement('section', rest, title, children, actionLinks);

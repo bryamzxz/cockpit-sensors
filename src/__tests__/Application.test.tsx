@@ -29,15 +29,11 @@ vi.mock('../hooks/useSensorPreferences', () => ({
 vi.mock('../hooks/useSensors', () => ({
     useSensors: (refreshMs?: number) => useSensorsMock(refreshMs),
 }));
-vi.mock(
-    'cockpit',
-    () => ({
-        default: {
-            gettext: (message: string) => message,
-        },
-    }),
-    { virtual: true }
-);
+vi.mock('cockpit', () => ({
+    default: {
+        gettext: (message: string) => message,
+    },
+}));
 
 let Application: typeof import('../app/Application').Application;
 
