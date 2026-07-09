@@ -22,7 +22,7 @@ export interface CockpitSpawnProcess {
 
 export interface CockpitFileHandle {
     read(): Promise<string>;
-    watch(callback: (content: string | null) => void): () => void;
+    watch(callback: (content: string | null) => void): { remove(): void };
     close(): void;
 }
 

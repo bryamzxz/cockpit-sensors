@@ -2,7 +2,6 @@ import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SensorKind } from './types';
 import {
-    parseNumber,
     readFile as readFileUtil,
     readNumberFile as readNumberFileUtil,
     spawnText as spawnTextUtil,
@@ -238,7 +237,6 @@ const buildSample = (descriptor: HwmonSensorDescriptor, value: number): SensorSa
 
 export class HwmonProvider implements Provider {
     readonly name = 'hwmon';
-    private throttleTimeout: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -258,128 +256,103 @@ export class HwmonProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
-        const watches: Array<() => void> = [];
-        const currentValues = new Map<string, number>();
-        const descriptors = new Map<string, HwmonSensorDescriptor>();
+        let polling = false;
+        let intervalHandle: number | undefined;
+        let sensors: HwmonSensorDescriptor[] = [];
 
-        const emit = () => {
+        const reportError = (error: unknown, fallbackMessage: string) => {
             if (disposed) {
                 return;
             }
 
-            if (typeof window !== 'undefined') {
-                if (this.throttleTimeout) {
-                    window.clearTimeout(this.throttleTimeout);
-                }
+            const providerError =
+                error instanceof ProviderError
+                    ? error
+                    : new ProviderError((error as Error).message || fallbackMessage, 'unexpected', {
+                        cause: error instanceof Error ? error : undefined,
+                    });
+            context?.onError?.(providerError);
+        };
 
-                this.throttleTimeout = window.setTimeout(() => {
-                    const samples: SensorSample[] = [];
-                    for (const [id, descriptor] of descriptors) {
-                        const value = currentValues.get(id);
-                        if (typeof value !== 'number') {
-                            continue;
-                        }
-
-                        samples.push(buildSample(descriptor, value));
-                    }
-                    onChange(samples);
-                }, POLLING_INTERVALS.THROTTLE);
+        const poll = async () => {
+            // sysfs attributes never emit inotify events, so values must be
+            // re-read on every cycle instead of relying on file watches.
+            if (disposed || polling) {
                 return;
             }
 
-            const samples: SensorSample[] = [];
-            for (const [id, descriptor] of descriptors) {
-                const value = currentValues.get(id);
-                if (typeof value !== 'number') {
-                    continue;
+            polling = true;
+            try {
+                const values = await Promise.all(sensors.map(sensor =>
+                    readNumberFile(cockpitInstance, sensor.inputPath, sensor.scale)));
+
+                if (disposed) {
+                    return;
                 }
-                samples.push(buildSample(descriptor, value));
+
+                const samples: SensorSample[] = [];
+                sensors.forEach((sensor, index) => {
+                    const value = values[index];
+                    if (typeof value === 'number') {
+                        samples.push(buildSample(sensor, value));
+                    }
+                });
+                onChange(samples);
+            } catch (error) {
+                reportError(error, 'hwmon read failure');
+            } finally {
+                polling = false;
             }
-            onChange(samples);
         };
 
-        const attachWatchers = async () => {
+        const bootstrap = async () => {
             try {
                 const chips = await buildChipDescriptors(cockpitInstance);
-                if (chips.length === 0) {
+                if (disposed) {
+                    return;
+                }
+
+                sensors = chips.flatMap(chip => chip.sensors);
+                if (sensors.length === 0) {
                     onChange([]);
                     return;
                 }
 
-                for (const chip of chips) {
-                    for (const sensor of chip.sensors) {
-                        descriptors.set(sensor.id, sensor);
+                await Promise.all(sensors.map(async sensor => {
+                    [sensor.min, sensor.max, sensor.critical] = await Promise.all([
+                        readNumberFile(cockpitInstance, sensor.minPath, sensor.scale),
+                        readNumberFile(cockpitInstance, sensor.maxPath, sensor.scale),
+                        readNumberFile(cockpitInstance, sensor.critPath, sensor.scale),
+                    ]);
+                }));
 
-                        const initialValue = await readNumberFile(
-                            cockpitInstance,
-                            sensor.inputPath,
-                            sensor.scale,
-                        );
-                        if (typeof initialValue === 'number') {
-                            currentValues.set(sensor.id, initialValue);
-                        }
-
-                        sensor.min = await readNumberFile(cockpitInstance, sensor.minPath, sensor.scale);
-                        sensor.max = await readNumberFile(cockpitInstance, sensor.maxPath, sensor.scale);
-                        sensor.critical = await readNumberFile(cockpitInstance, sensor.critPath, sensor.scale);
-
-                        const handle = cockpitInstance.file(sensor.inputPath, { superuser: 'require' });
-                        const stop = handle.watch(content => {
-                            if (disposed) {
-                                return;
-                            }
-
-                            if (content === null) {
-                                currentValues.delete(sensor.id);
-                                emit();
-                                return;
-                            }
-
-                            const parsed = parseNumber(content);
-                            if (typeof parsed !== 'number') {
-                                return;
-                            }
-
-                            const value = parsed * sensor.scale;
-                            currentValues.set(sensor.id, value);
-                            emit();
-                        });
-
-                        watches.push(() => {
-                            stop?.();
-                            handle.close();
-                        });
-                    }
+                await poll();
+                if (disposed) {
+                    return;
                 }
 
-                emit();
+                if (typeof window !== 'undefined') {
+                    const interval = Math.max(
+                        context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT,
+                        POLLING_INTERVALS.MINIMUM,
+                    );
+                    intervalHandle = window.setInterval(() => {
+                        void poll();
+                    }, interval);
+                }
             } catch (error) {
-                const providerError =
-                    error instanceof ProviderError
-                        ? error
-                        : new ProviderError((error as Error).message || 'hwmon failure', 'unexpected', {
-                            cause: error instanceof Error ? error : undefined,
-                        });
-                context?.onError?.(providerError);
+                reportError(error, 'hwmon failure');
             }
         };
 
-        void attachWatchers();
+        void bootstrap();
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && this.throttleTimeout) {
-                window.clearTimeout(this.throttleTimeout);
-                this.throttleTimeout = undefined;
+            if (typeof window !== 'undefined' && intervalHandle) {
+                window.clearInterval(intervalHandle);
+                intervalHandle = undefined;
             }
-            for (const cancel of watches) {
-                try {
-                    cancel();
-                } catch (error) {
-                    console.error('Failed to stop hwmon watcher', error);
-                }
-            }
-            watches.length = 0;
         };
     }
 }
