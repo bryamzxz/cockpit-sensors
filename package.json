@@ -13,6 +13,7 @@
     "build": "node ./build.js",
     "dev": "node ./build.js --watch",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "test:watch": "vitest watch"
   },
