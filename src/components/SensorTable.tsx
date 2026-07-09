@@ -13,14 +13,16 @@ import {
     ToolbarItem,
     Tooltip,
 } from '@patternfly/react-core';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
-    BarsIcon,
     DownloadIcon,
+    ExclamationCircleIcon,
+    GripVerticalIcon,
+    ListIcon,
     OutlinedStarIcon,
     PauseIcon,
     PlayIcon,
     StarIcon,
-    ThIcon,
 } from '@patternfly/react-icons';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 
@@ -222,11 +224,11 @@ const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => 
         : undefined;
 
     return (
-        <tr
+        <Tr
             data-pinned={row.isPinned}
             data-threshold={row.threshold}
         >
-            <td data-label={_('Pinned status')}>
+            <Td dataLabel={_('Pinned status')}>
                 <Tooltip
                     content={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
                     entryDelay={300}
@@ -243,8 +245,8 @@ const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => 
                         {row.isPinned ? <StarIcon /> : <OutlinedStarIcon />}
                     </Button>
                 </Tooltip>
-            </td>
-            <td data-label={_('Chip')}>
+            </Td>
+            <Td dataLabel={_('Chip')}>
                 <div className="sensor-row__chip-label">
                     <span className="sensor-row__chip-name">{row.chip}</span>
                     {row.source && (
@@ -253,11 +255,11 @@ const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => 
                         </Label>
                     )}
                 </div>
-            </td>
-            <td data-label={_('Sensor')}>
+            </Td>
+            <Td dataLabel={_('Sensor')}>
                 <span className="sensor-row__sensor-name">{row.readingLabel}</span>
-            </td>
-            <td data-label={_('Current')}>
+            </Td>
+            <Td dataLabel={_('Current')}>
                 <span className={`sensor-reading sensor-reading--${row.threshold}`}>
                     <span>{valueParts.value}</span>
                     {valueParts.unit && (
@@ -276,16 +278,16 @@ const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => 
                         <span
                             className="sensor-progress__bar"
                             style={{
-                                inlineSize: `${Math.max(2, Math.min(100, progress.percent))}%`,
+                                inlineSize: `${Math.max(0, Math.min(100, progress.percent))}%`,
                             }}
                         />
                     </div>
                 )}
-            </td>
-            <td data-label={_('Session min · avg · max')}>
+            </Td>
+            <Td dataLabel={_('Session min · avg · max')}>
                 <span className="sensor-stats">{statsLine}</span>
-            </td>
-            <td data-label={_('Trend')}>
+            </Td>
+            <Td dataLabel={_('Trend')}>
                 <Sparkline
                     data={sparkData}
                     threshold={row.threshold}
@@ -294,9 +296,9 @@ const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => 
                     width={140}
                     height={32}
                 />
-            </td>
-            <td data-label={_('Source')}>{row.source ?? MISSING_VALUE}</td>
-        </tr>
+            </Td>
+            <Td dataLabel={_('Source')}>{row.source ?? MISSING_VALUE}</Td>
+        </Tr>
     );
 });
 SensorRow.displayName = 'SensorRow';
@@ -499,7 +501,16 @@ export const SensorTable: React.FC<SensorTableProps> = ({
         attemptDownload(csvView.text, fallbackName);
     }, [attemptDownload, csvView]);
 
+    const exportDisabled = React.useMemo(() => {
+        void historyVersion;
+        return !allPreparedRows.some(row => getHistory(row.key).length > 0);
+    }, [allPreparedRows, historyVersion]);
+
     const handleExport = React.useCallback(() => {
+        if (exportDisabled) {
+            return;
+        }
+
         const series: HistorySeries[] = allPreparedRows.map(row => {
             const buffer = getHistory(row.key);
 
@@ -527,12 +538,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
         attemptDownload(csv, filename);
         setCsvView({ open: true, text: csv, filename });
-    }, [attemptDownload, allPreparedRows, unit]);
-
-    const exportDisabled = React.useMemo(() => {
-        void historyVersion;
-        return !allPreparedRows.some(row => getHistory(row.key).length > 0);
-    }, [allPreparedRows, historyVersion]);
+    }, [attemptDownload, allPreparedRows, unit, exportDisabled]);
 
     const handleSearchChange = React.useCallback(
         (_event: React.FormEvent<HTMLInputElement>, value: string) => {
@@ -574,7 +580,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                         <ToolbarItem>
                             <ToggleGroup aria-label={_('Select view mode')}>
                                 <ToggleGroupItem
-                                    icon={<BarsIcon />}
+                                    icon={<ListIcon />}
                                     aria-label={_('Show as table')}
                                     buttonId="sensor-view-table"
                                     isSelected={viewMode === 'table'}
@@ -582,7 +588,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                     text={_('Table')}
                                 />
                                 <ToggleGroupItem
-                                    icon={<ThIcon />}
+                                    icon={<GripVerticalIcon />}
                                     aria-label={_('Show as cards')}
                                     buttonId="sensor-view-cards"
                                     isSelected={viewMode === 'cards'}
@@ -658,7 +664,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                     onChange={() => onDensityChange('compact')}
                                 />
                                 <ToggleGroupItem
-                                    text={_('Roomy')}
+                                    text={_('Comfortable')}
                                     buttonId="sensor-density-comfortable"
                                     isSelected={density === 'comfortable'}
                                     onChange={() => onDensityChange('comfortable')}
@@ -669,12 +675,16 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
                     <ToolbarGroup align={{ default: 'alignEnd' }}>
                         <ToolbarItem>
-                            <Tooltip content={_('Download session history as CSV')}>
+                            <Tooltip
+                                content={exportDisabled
+                                    ? _('Export becomes available once history samples are collected')
+                                    : _('Download session history as CSV')}
+                            >
                                 <Button
                                     onClick={handleExport}
                                     variant="secondary"
                                     icon={<DownloadIcon />}
-                                    isDisabled={exportDisabled}
+                                    isAriaDisabled={exportDisabled}
                                 >
                                     {_('Export CSV')}
                                 </Button>
@@ -697,7 +707,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     <EmptyState
                         variant="sm"
                         titleText={zeroState.title}
-                        icon={SearchIcon}
+                        icon={ExclamationCircleIcon}
                         headingLevel="h3"
                     >
                         <EmptyStateBody>{zeroState.description}</EmptyStateBody>
@@ -716,6 +726,9 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                         <EmptyStateBody>
                             {_('Try a different filter or clear the search to view all sensors.')}
                         </EmptyStateBody>
+                        <Button variant="link" onClick={handleSearchClear}>
+                            {_('Clear filter')}
+                        </Button>
                     </EmptyState>
                 </div>
             )}
@@ -759,32 +772,24 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
             {hasResults && viewMode === 'table' && (
                 <div className="sensor-table-wrapper">
-                    <table
-                        className={`sensor-table sensor-table--${density}`}
-                        role="grid"
+                    <Table
+                        className="sensor-table"
                         aria-label={_('Sensor readings')}
+                        gridBreakPoint="grid-lg"
+                        variant={density === 'compact' ? 'compact' : undefined}
                     >
-                        <colgroup>
-                            <col style={{ inlineSize: '2.5rem' }} />
-                            <col style={{ inlineSize: '24%' }} />
-                            <col style={{ inlineSize: '16%' }} />
-                            <col style={{ inlineSize: '14%' }} />
-                            <col style={{ inlineSize: '20%' }} />
-                            <col style={{ inlineSize: '16%' }} />
-                            <col style={{ inlineSize: '10%' }} />
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <th scope="col" aria-label={_('Pinned status')} />
-                                <th scope="col">{_('Chip')}</th>
-                                <th scope="col">{_('Sensor')}</th>
-                                <th scope="col">{_('Current')}</th>
-                                <th scope="col">{_('Session min · avg · max')}</th>
-                                <th scope="col">{_('Trend')}</th>
-                                <th scope="col">{_('Source')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                        <Thead>
+                            <Tr>
+                                <Th screenReaderText={_('Pinned status')} />
+                                <Th>{_('Chip')}</Th>
+                                <Th>{_('Sensor')}</Th>
+                                <Th>{_('Current')}</Th>
+                                <Th>{_('Session min · avg · max')}</Th>
+                                <Th>{_('Trend')}</Th>
+                                <Th>{_('Source')}</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
                             {filteredRows.map(row => (
                                 <SensorRow
                                     key={row.key}
@@ -793,8 +798,8 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                     onTogglePinned={onTogglePinned}
                                 />
                             ))}
-                        </tbody>
-                    </table>
+                        </Tbody>
+                    </Table>
                 </div>
             )}
         </div>

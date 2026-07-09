@@ -2,6 +2,11 @@
     "requires": {
         "cockpit": "361"
     },
+    "keywords": [
+        {
+            "matches": ["sensors", "temperature", "fan", "voltage", "power", "hardware", "thermal", "hwmon"]
+        }
+    ],
     "tools": {
         "index": {
             "label": "Sensors"

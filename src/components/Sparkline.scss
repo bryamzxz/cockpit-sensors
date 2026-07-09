@@ -60,6 +60,16 @@
 
 .sensor-sparkline__dot {
     fill: currentColor;
-    stroke: var(--pf-t--global--background--color--primary--default, #fff);
+    stroke: var(--pf-t--global--background--color--primary--default);
     stroke-width: 1.5;
+}
+
+.sensor-sparkline__tooltip {
+    fill: var(--pf-t--global--text--color--regular);
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--pf-t--global--background--color--primary--default);
+    stroke-width: 3px;
+    stroke-linejoin: round;
 }

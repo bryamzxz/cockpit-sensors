@@ -27,12 +27,18 @@ export const AlertVariant = { info: 'info', warning: 'warning', danger: 'danger'
 export const Button = ({
     children,
     isDisabled,
+    isAriaDisabled,
     icon,
     ...props
-}: ComponentProps & { isDisabled?: boolean; icon?: React.ReactNode }) =>
+}: ComponentProps & { isDisabled?: boolean; isAriaDisabled?: boolean; icon?: React.ReactNode }) =>
     React.createElement(
         'button',
-        { ...props, disabled: isDisabled, type: 'button' },
+        {
+            ...props,
+            disabled: isDisabled,
+            'aria-disabled': isAriaDisabled || undefined,
+            type: 'button',
+        },
         icon,
         children,
     );

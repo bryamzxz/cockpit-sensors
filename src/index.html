@@ -24,10 +24,12 @@ along with this package; If not, see <http://www.gnu.org/licenses/>.
 
     <link rel="stylesheet" href="index.css">
 
+    <!-- Translations must load before the bundle: module-level _() calls
+         in index.js run at parse time. -->
     <script src="../base1/cockpit.js"></script>
-    <script type="text/javascript" src="index.js"></script>
     <script type="text/javascript" src="../base1/po.js"></script>
     <script type="text/javascript" src="po.js"></script>
+    <script type="text/javascript" src="index.js"></script>
 </head>
 
 <body>

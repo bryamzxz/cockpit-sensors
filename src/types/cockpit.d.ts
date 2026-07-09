@@ -40,6 +40,7 @@ export interface CockpitFileOptions {
 
 export interface Cockpit {
     gettext: CockpitGettext;
+    format(template: string, ...args: unknown[]): string;
     spawn(command: string[] | string, options?: CockpitSpawnOptions): CockpitSpawnProcess;
     file(path: string, options?: CockpitFileOptions): CockpitFileHandle;
 }
