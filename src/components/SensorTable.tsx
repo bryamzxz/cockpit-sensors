@@ -28,7 +28,8 @@ import { Sparkline } from './Sparkline';
 import { CsvModalViewer } from './CsvModalViewer';
 import { SensorCard } from './SensorCard';
 import { SensorSummary, type SummaryStat } from './SensorSummary';
-import { calcStats, pushSample, type Sample } from '../lib/history';
+import { calcStats, type Sample } from '../lib/history';
+import { getHistory } from '../lib/historyStore';
 import type { TemperatureUnit } from '../hooks/useSensorPreferences';
 import { SENSOR_REFRESH_OPTIONS } from '../hooks/useSensorPreferences';
 import { convertForDisplay, displayUnitFor, formatMeasurement } from '../utils/units';
@@ -98,6 +99,8 @@ const REFRESH_LABELS: Record<number, string> = {
 export interface SensorTableProps {
     groups: SensorChipGroup[];
     category: SensorCategory;
+    /** Bumped by the app whenever the shared history store records samples. */
+    historyVersion?: number;
     unit: TemperatureUnit;
     onUnitChange: (unit: TemperatureUnit) => void;
     refreshMs: number;
@@ -200,9 +203,108 @@ const SUMMARY_LABELS_BY_CATEGORY: Record<SensorCategory, { total: string; max: s
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
+interface SensorRowProps {
+    row: PreparedRow;
+    unit: TemperatureUnit;
+    onTogglePinned: (key: string) => void;
+}
+
+const SensorRow = React.memo(({ row, unit, onTogglePinned }: SensorRowProps) => {
+    const valueParts = formatValueParts(row.input, row.readingUnit, unit);
+    const statsLine = formatStatsParts(row.sessionStats, row.readingUnit, unit);
+    const sparkData = row.history.map(sample => ({
+        t: sample.t,
+        v: convertForDisplay(sample.v, row.readingUnit, unit),
+    }));
+    const progress = computeProgress(row);
+    const thresholdDisplay = progress?.thresholdValue !== undefined
+        ? convertForDisplay(progress.thresholdValue, row.readingUnit, unit)
+        : undefined;
+
+    return (
+        <tr
+            data-pinned={row.isPinned}
+            data-threshold={row.threshold}
+        >
+            <td data-label={_('Pinned status')}>
+                <Tooltip
+                    content={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
+                    entryDelay={300}
+                >
+                    <Button
+                        variant="plain"
+                        onClick={() => onTogglePinned(row.key)}
+                        aria-label={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
+                        aria-pressed={row.isPinned}
+                        className="sensor-row__pin-btn"
+                        data-pinned={row.isPinned}
+                        data-testid="sensor-pin-toggle"
+                    >
+                        {row.isPinned ? <StarIcon /> : <OutlinedStarIcon />}
+                    </Button>
+                </Tooltip>
+            </td>
+            <td data-label={_('Chip')}>
+                <div className="sensor-row__chip-label">
+                    <span className="sensor-row__chip-name">{row.chip}</span>
+                    {row.source && (
+                        <Label color="grey" isCompact>
+                            {row.source}
+                        </Label>
+                    )}
+                </div>
+            </td>
+            <td data-label={_('Sensor')}>
+                <span className="sensor-row__sensor-name">{row.readingLabel}</span>
+            </td>
+            <td data-label={_('Current')}>
+                <span className={`sensor-reading sensor-reading--${row.threshold}`}>
+                    <span>{valueParts.value}</span>
+                    {valueParts.unit && (
+                        <span className="sensor-reading__unit">{valueParts.unit}</span>
+                    )}
+                </span>
+                {progress && (
+                    <div
+                        className={`sensor-progress sensor-progress--${row.threshold}`}
+                        role="progressbar"
+                        aria-valuenow={Math.round(progress.percent)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={_('Range against threshold')}
+                    >
+                        <span
+                            className="sensor-progress__bar"
+                            style={{
+                                inlineSize: `${Math.max(2, Math.min(100, progress.percent))}%`,
+                            }}
+                        />
+                    </div>
+                )}
+            </td>
+            <td data-label={_('Session min · avg · max')}>
+                <span className="sensor-stats">{statsLine}</span>
+            </td>
+            <td data-label={_('Trend')}>
+                <Sparkline
+                    data={sparkData}
+                    threshold={row.threshold}
+                    unit={valueParts.unit}
+                    thresholdLine={thresholdDisplay}
+                    width={140}
+                    height={32}
+                />
+            </td>
+            <td data-label={_('Source')}>{row.source ?? MISSING_VALUE}</td>
+        </tr>
+    );
+});
+SensorRow.displayName = 'SensorRow';
+
 export const SensorTable: React.FC<SensorTableProps> = ({
     groups,
     category,
+    historyVersion = 0,
     unit,
     onUnitChange,
     refreshMs,
@@ -218,9 +320,6 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     searchTerm = '',
     onSearchChange,
 }) => {
-    const historyRef = React.useRef(new Map<string, Sample[]>());
-    const [historyVersion, setHistoryVersion] = React.useState(0);
-
     const pinnedIndex = React.useMemo(() => {
         const index = new Map<string, number>();
         pinnedKeys.forEach((key, position) => {
@@ -247,16 +346,19 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     );
 
     const allPreparedRows = React.useMemo<PreparedRow[]>(() => {
+        void historyVersion;
         const pinnedSet = new Set(pinnedKeys);
-        const history = historyRef.current;
         return rows
-                .map(row => ({
-                    ...row,
-                    history: history.get(row.key) ?? [],
-                    sessionStats: calcStats(history.get(row.key) ?? []),
-                    threshold: getThresholdState(row.reading),
-                    isPinned: pinnedSet.has(row.key),
-                }))
+                .map(row => {
+                    const history = getHistory(row.key);
+                    return {
+                        ...row,
+                        history,
+                        sessionStats: calcStats(history),
+                        threshold: getThresholdState(row.reading),
+                        isPinned: pinnedSet.has(row.key),
+                    };
+                })
                 .sort((a, b) => {
                     if (a.isPinned && b.isPinned) {
                         return (pinnedIndex.get(a.key) ?? 0) - (pinnedIndex.get(b.key) ?? 0);
@@ -278,7 +380,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                     if (chipCompare !== 0) return chipCompare;
                     return collator.compare(a.readingLabel, b.readingLabel);
                 });
-    }, [rows, pinnedKeys, pinnedIndex]);
+    }, [rows, pinnedKeys, pinnedIndex, historyVersion]);
 
     const filteredRows = React.useMemo<PreparedRow[]>(() => {
         const term = searchTerm.trim().toLowerCase();
@@ -291,44 +393,6 @@ export const SensorTable: React.FC<SensorTableProps> = ({
             || (row.source ?? '').toLowerCase().includes(term),
         );
     }, [allPreparedRows, searchTerm]);
-
-    React.useEffect(() => {
-        if (isPaused) {
-            return;
-        }
-
-        const history = historyRef.current;
-        const activeKeys = new Set<string>();
-        let changed = false;
-
-        for (const row of rows) {
-            activeKeys.add(row.key);
-            if (!Number.isFinite(row.input)) {
-                continue;
-            }
-
-            const buffer = history.get(row.key) ?? [];
-            const previousLength = buffer.length;
-            pushSample(buffer, row.input);
-            if (!history.has(row.key)) {
-                history.set(row.key, buffer);
-            }
-            if (buffer.length !== previousLength) {
-                changed = true;
-            }
-        }
-
-        for (const key of Array.from(history.keys())) {
-            if (!activeKeys.has(key)) {
-                history.delete(key);
-                changed = true;
-            }
-        }
-
-        if (changed) {
-            setHistoryVersion(version => version + 1);
-        }
-    }, [rows, isPaused]);
 
     const summaryStats = React.useMemo<SummaryStat[]>(() => {
         if (allPreparedRows.length === 0) {
@@ -436,9 +500,8 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     }, [attemptDownload, csvView]);
 
     const handleExport = React.useCallback(() => {
-        const history = historyRef.current;
         const series: HistorySeries[] = allPreparedRows.map(row => {
-            const buffer = history.get(row.key) ?? [];
+            const buffer = getHistory(row.key);
 
             const samples = buffer.map(sample => ({
                 t: sample.t,
@@ -468,13 +531,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
 
     const exportDisabled = React.useMemo(() => {
         void historyVersion;
-        const history = historyRef.current;
-        for (const row of allPreparedRows) {
-            if ((history.get(row.key) ?? []).length > 0) {
-                return false;
-            }
-        }
-        return true;
+        return !allPreparedRows.some(row => getHistory(row.key).length > 0);
     }, [allPreparedRows, historyVersion]);
 
     const handleSearchChange = React.useCallback(
@@ -728,97 +785,14 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredRows.map(row => {
-                                const valueParts = formatValueParts(row.input, row.readingUnit, unit);
-                                const statsLine = formatStatsParts(row.sessionStats, row.readingUnit, unit);
-                                const sparkData = row.history.map(sample => ({
-                                    t: sample.t,
-                                    v: convertForDisplay(sample.v, row.readingUnit, unit),
-                                }));
-                                const progress = computeProgress(row);
-                                const thresholdDisplay = progress?.thresholdValue !== undefined
-                                    ? convertForDisplay(progress.thresholdValue, row.readingUnit, unit)
-                                    : undefined;
-
-                                return (
-                                    <tr
-                                        key={row.key}
-                                        data-pinned={row.isPinned}
-                                        data-threshold={row.threshold}
-                                    >
-                                        <td data-label={_('Pinned status')}>
-                                            <Tooltip
-                                                content={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
-                                                entryDelay={300}
-                                            >
-                                                <Button
-                                                    variant="plain"
-                                                    onClick={() => onTogglePinned(row.key)}
-                                                    aria-label={row.isPinned ? _('Unpin sensor') : _('Pin sensor')}
-                                                    aria-pressed={row.isPinned}
-                                                    className="sensor-row__pin-btn"
-                                                    data-pinned={row.isPinned}
-                                                    data-testid="sensor-pin-toggle"
-                                                >
-                                                    {row.isPinned ? <StarIcon /> : <OutlinedStarIcon />}
-                                                </Button>
-                                            </Tooltip>
-                                        </td>
-                                        <td data-label={_('Chip')}>
-                                            <div className="sensor-row__chip-label">
-                                                <span className="sensor-row__chip-name">{row.chip}</span>
-                                                {row.source && (
-                                                    <Label color="grey" isCompact>
-                                                        {row.source}
-                                                    </Label>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td data-label={_('Sensor')}>
-                                            <span className="sensor-row__sensor-name">{row.readingLabel}</span>
-                                        </td>
-                                        <td data-label={_('Current')}>
-                                            <span className={`sensor-reading sensor-reading--${row.threshold}`}>
-                                                <span>{valueParts.value}</span>
-                                                {valueParts.unit && (
-                                                    <span className="sensor-reading__unit">{valueParts.unit}</span>
-                                                )}
-                                            </span>
-                                            {progress && (
-                                                <div
-                                                    className={`sensor-progress sensor-progress--${row.threshold}`}
-                                                    role="progressbar"
-                                                    aria-valuenow={Math.round(progress.percent)}
-                                                    aria-valuemin={0}
-                                                    aria-valuemax={100}
-                                                    aria-label={_('Range against threshold')}
-                                                >
-                                                    <span
-                                                        className="sensor-progress__bar"
-                                                        style={{
-                                                            inlineSize: `${Math.max(2, Math.min(100, progress.percent))}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td data-label={_('Session min · avg · max')}>
-                                            <span className="sensor-stats">{statsLine}</span>
-                                        </td>
-                                        <td data-label={_('Trend')}>
-                                            <Sparkline
-                                                data={sparkData}
-                                                threshold={row.threshold}
-                                                unit={valueParts.unit}
-                                                thresholdLine={thresholdDisplay}
-                                                width={140}
-                                                height={32}
-                                            />
-                                        </td>
-                                        <td data-label={_('Source')}>{row.source ?? MISSING_VALUE}</td>
-                                    </tr>
-                                );
-                            })}
+                            {filteredRows.map(row => (
+                                <SensorRow
+                                    key={row.key}
+                                    row={row}
+                                    unit={unit}
+                                    onTogglePinned={onTogglePinned}
+                                />
+                            ))}
                         </tbody>
                     </table>
                 </div>
