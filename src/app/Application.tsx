@@ -38,6 +38,7 @@ import { useSensors } from '../hooks/useSensors';
 import { useSensorPreferences } from '../hooks/useSensorPreferences';
 import type { SensorCategory, SensorChipGroup } from '../types/sensors';
 import { groupsForCategory } from '../utils/grouping';
+import { recordSamples } from '../lib/historyStore';
 import { getThresholdState, type ThresholdState } from '../utils/thresholds';
 import { _ } from '../utils/cockpit';
 import { syncWithParentPatternflyTheme } from '../lib/syncTheme';
@@ -113,6 +114,26 @@ const formatLastUpdate = (timestamp: number | null): string => {
     return `${Math.round(delta / 3600)}h ${_('ago')}`;
 };
 
+/**
+ * Isolated one-second clock: keeping the tick inside a memoized leaf
+ * means the rest of the dashboard no longer re-renders every second.
+ */
+const LastUpdated: React.FC<{ timestamp: number | null }> = React.memo(({ timestamp }) => {
+    const [, setTick] = React.useState(0);
+
+    React.useEffect(() => {
+        const interval = window.setInterval(() => setTick(tick => tick + 1), 1000);
+        return () => window.clearInterval(interval);
+    }, []);
+
+    return (
+        <span className="sensor-app__updated">
+            {_('Updated')}: {formatLastUpdate(timestamp)}
+        </span>
+    );
+});
+LastUpdated.displayName = 'LastUpdated';
+
 export const Application: React.FC = () => {
     React.useEffect(() => {
         return syncWithParentPatternflyTheme();
@@ -124,11 +145,11 @@ export const Application: React.FC = () => {
     const [isPaused, setIsPaused] = React.useState<boolean>(false);
     const [searchTerm, setSearchTerm] = React.useState<string>('');
     const [lastUpdate, setLastUpdate] = React.useState<number | null>(null);
-    const [, setNow] = React.useState<number>(() => Date.now());
+    const [historyVersion, setHistoryVersion] = React.useState(0);
+    const autoPausedRef = React.useRef(false);
 
     const { unit, setUnit, refreshMs, setRefreshMs, pinned, togglePinned } = useSensorPreferences();
-    const effectiveRefresh = isPaused ? 24 * 3600 * 1000 : refreshMs;
-    const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors(effectiveRefresh);
+    const { data, isLoading, status, activeProvider, lastError, availableProviders, retry } = useSensors(refreshMs, isPaused);
 
     React.useEffect(() => {
         if (data.groups.length > 0) {
@@ -137,9 +158,16 @@ export const Application: React.FC = () => {
     }, [data]);
 
     React.useEffect(() => {
-        const interval = window.setInterval(() => setNow(Date.now()), 1000);
-        return () => window.clearInterval(interval);
-    }, []);
+        if (isPaused || data.groups.length === 0) {
+            return;
+        }
+
+        // Collapse the bursts caused by several providers reporting within
+        // the same refresh cycle into a single history sample per sensor.
+        if (recordSamples(data.groups, refreshMs * 0.8)) {
+            setHistoryVersion(version => version + 1);
+        }
+    }, [data, isPaused, refreshMs]);
 
     React.useEffect(() => {
         if (typeof document === 'undefined') {
@@ -148,7 +176,15 @@ export const Application: React.FC = () => {
 
         const handler = () => {
             if (document.hidden) {
-                setIsPaused(true);
+                setIsPaused(prev => {
+                    if (!prev) {
+                        autoPausedRef.current = true;
+                    }
+                    return true;
+                });
+            } else if (autoPausedRef.current) {
+                autoPausedRef.current = false;
+                setIsPaused(false);
             }
         };
         document.addEventListener('visibilitychange', handler);
@@ -170,15 +206,26 @@ export const Application: React.FC = () => {
         [setActiveKey],
     );
 
-    const togglePause = React.useCallback(() => setIsPaused(prev => !prev), []);
+    const togglePause = React.useCallback(() => {
+        autoPausedRef.current = false;
+        setIsPaused(prev => !prev);
+    }, []);
 
-    const tabSummaries = React.useMemo(() => {
-        const map = new Map<SensorCategory, ReturnType<typeof summariseGroups>>();
+    const groupsByCategory = React.useMemo(() => {
+        const map = new Map<SensorCategory, SensorChipGroup[]>();
         for (const tab of TABS) {
-            map.set(tab.category, summariseGroups(groupsForCategory(data.groups, tab.category)));
+            map.set(tab.category, groupsForCategory(data.groups, tab.category));
         }
         return map;
     }, [data.groups]);
+
+    const tabSummaries = React.useMemo(() => {
+        const map = new Map<SensorCategory, ReturnType<typeof summariseGroups>>();
+        for (const [category, groups] of groupsByCategory) {
+            map.set(category, summariseGroups(groups));
+        }
+        return map;
+    }, [groupsByCategory]);
 
     const overall = React.useMemo<ThresholdState>(() => {
         let worst: ThresholdState = 'normal';
@@ -355,9 +402,7 @@ export const Application: React.FC = () => {
                             >
                                 {statusPillLabel}
                             </span>
-                            <span className="sensor-app__updated" aria-live="polite">
-                                {_('Updated')}: {formatLastUpdate(lastUpdate)}
-                            </span>
+                            <LastUpdated timestamp={lastUpdate} />
                         </div>
                     </div>
                     {availableProviders.length > 0 && (
@@ -405,6 +450,8 @@ export const Application: React.FC = () => {
                     onSelect={handleTabSelect}
                     aria-label={_('Sensor category list')}
                     role="region"
+                    mountOnEnter
+                    unmountOnExit
                 >
                     {TABS.map(tab => {
                         const summary = tabSummaries.get(tab.category);
@@ -446,7 +493,8 @@ export const Application: React.FC = () => {
                                 {!isLoading && (
                                     <SensorTable
                                         category={tab.category}
-                                        groups={groupsForCategory(data.groups, tab.category)}
+                                        groups={groupsByCategory.get(tab.category) ?? []}
+                                        historyVersion={historyVersion}
                                         unit={unit}
                                         onUnitChange={setUnit}
                                         refreshMs={refreshMs}

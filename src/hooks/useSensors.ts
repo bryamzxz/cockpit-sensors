@@ -61,8 +61,9 @@ const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): Sampl
     return aggregated;
 };
 
+const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
 const sortGroups = (groups: SensorChipGroup[]): SensorChipGroup[] => {
-    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
     return [...groups]
             .sort((a, b) => collator.compare(a.label, b.label))
             .map(group => ({
@@ -120,7 +121,10 @@ export const __testing = {
     samplesToSensorData,
 };
 
-export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSensorsResult => {
+export const useSensors = (
+    refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS,
+    isPaused = false,
+): UseSensorsResult => {
     const [state, setState] = React.useState<UseSensorsState>({
         data: { ...EMPTY_SENSOR_DATA },
         isLoading: true,
@@ -128,6 +132,11 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
     });
     const [availableProviders, setAvailableProviders] = React.useState<string[]>([]);
     const [retryToken, setRetryToken] = React.useState(0);
+
+    // Providers consult this ref before each poll, so pausing never tears
+    // down and re-bootstraps the provider stack.
+    const pausedRef = React.useRef(isPaused);
+    pausedRef.current = isPaused;
 
     React.useEffect(() => {
         let cancelled = false;
@@ -225,6 +234,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
                             {
                                 onError: error => handleProviderError(provider, error),
                                 refreshIntervalMs,
+                                isPaused: () => pausedRef.current,
                             },
                         );
 
@@ -285,6 +295,7 @@ export const useSensors = (refreshIntervalMs = DEFAULT_SENSOR_REFRESH_MS): UseSe
                     {
                         onError: error => handleProviderError(provider, error),
                         refreshIntervalMs,
+                        isPaused: () => pausedRef.current,
                     },
                 );
             } catch (error) {

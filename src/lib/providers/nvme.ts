@@ -1,7 +1,7 @@
 import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
-import { isRecord, isValidDevicePath, spawnJson, POLLING_INTERVALS } from './utils';
+import { isRecord, isValidDevicePath, spawnJson, startPollingInterval, POLLING_INTERVALS } from './utils';
 
 const PROVIDER_NAME = 'nvme';
 const UNAVAILABLE_MESSAGE = 'nvme-cli is not available on this system';
@@ -104,7 +104,6 @@ export const buildSample = (device: NvmeDeviceInfo, temperature: number): Sensor
 
 export class NvmeProvider implements Provider {
     readonly name = 'nvme';
-    private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -128,10 +127,19 @@ export class NvmeProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
+        let devices: NvmeDeviceInfo[] = [];
+        let lastScanAt = 0;
 
         const poll = async () => {
             try {
-                const devices = await listNvmeDevices(cockpitInstance);
+                // Device topology changes rarely; keep the list cached and
+                // only re-scan on a slow schedule instead of every poll.
+                const now = Date.now();
+                if (devices.length === 0 || now - lastScanAt >= POLLING_INTERVALS.DEVICE_RESCAN) {
+                    devices = await listNvmeDevices(cockpitInstance);
+                    lastScanAt = now;
+                }
+
                 if (disposed) {
                     return;
                 }
@@ -141,29 +149,25 @@ export class NvmeProvider implements Provider {
                     return;
                 }
 
-                const samples: SensorSample[] = [];
-                for (const device of devices) {
+                const results = await Promise.all(devices.map(async device => {
                     try {
                         const log = await readSmartLog(cockpitInstance, device.name);
                         const temperature = convertTemperature(log.composite_temperature ?? log.temperature);
-                        if (typeof temperature === 'number') {
-                            samples.push(buildSample(device, temperature));
-                        }
+                        return typeof temperature === 'number' ? buildSample(device, temperature) : null;
                     } catch (error) {
-                        if (error instanceof ProviderError) {
-                            if (error.code === 'permission-denied') {
-                                context?.onError?.(error);
-                                return;
-                            }
-
-                            if (error.code === 'unavailable') {
-                                continue;
-                            }
+                        if (error instanceof ProviderError && error.code === 'permission-denied') {
+                            throw error;
                         }
+
+                        return null;
                     }
+                }));
+
+                if (disposed) {
+                    return;
                 }
 
-                onChange(samples);
+                onChange(results.filter((sample): sample is SensorSample => sample !== null));
             } catch (error) {
                 if (disposed) {
                     return;
@@ -177,19 +181,14 @@ export class NvmeProvider implements Provider {
 
         void poll();
 
-        if (typeof window !== 'undefined') {
-            const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.NVME;
-            this.intervalHandle = window.setInterval(() => {
-                void poll();
-            }, interval);
-        }
+        // SMART data changes slowly; never let a fast dashboard refresh
+        // preference drive per-disk wake-ups below the disk interval.
+        const interval = Math.max(context?.refreshIntervalMs ?? POLLING_INTERVALS.NVME, POLLING_INTERVALS.NVME);
+        const stopInterval = startPollingInterval(poll, interval, context?.isPaused);
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && this.intervalHandle) {
-                window.clearInterval(this.intervalHandle);
-                this.intervalHandle = undefined;
-            }
+            stopInterval();
         };
     }
 }

@@ -97,6 +97,29 @@ describe('hwmonProvider polling', () => {
         stop();
     });
 
+    it('skips polling while paused and resumes afterwards', async () => {
+        let paused = false;
+        const onChange: OnChangeMock = vi.fn();
+        const stop = hwmonProvider.start(onChange, {
+            refreshIntervalMs: 1000,
+            isPaused: () => paused,
+        });
+
+        await vi.advanceTimersByTimeAsync(600);
+        expect(lastSamples(onChange)[0].value).toBeCloseTo(42);
+
+        paused = true;
+        files.set(`${CHIP_PATH}/temp1_input`, '55000\n');
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(lastSamples(onChange)[0].value).toBeCloseTo(42);
+
+        paused = false;
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(lastSamples(onChange)[0].value).toBeCloseTo(55);
+
+        stop();
+    });
+
     it('stops polling and releases resources on unsubscribe without errors', async () => {
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const onChange: OnChangeMock = vi.fn();

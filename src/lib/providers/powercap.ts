@@ -5,6 +5,7 @@ import {
     readFile as readFileUtil,
     readNumberFile as readNumberFileUtil,
     spawnText as spawnTextUtil,
+    startPollingInterval,
     POLLING_INTERVALS,
 } from './utils';
 
@@ -155,7 +156,6 @@ const listRaplDomains = async (cockpitInstance: Cockpit): Promise<RaplDomainStat
 
 export class PowercapProvider implements Provider {
     readonly name = 'powercap';
-    private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -179,6 +179,7 @@ export class PowercapProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
+        let stopInterval: (() => void) | undefined;
         let domains: RaplDomainState[] = [];
 
         const pollMs = Math.max(context?.refreshIntervalMs ?? POLLING_INTERVALS.POWERCAP, POLLING_INTERVALS.MINIMUM);
@@ -224,7 +225,7 @@ export class PowercapProvider implements Provider {
                     return;
                 }
 
-                this.intervalHandle = window.setInterval(() => void collect(), pollMs);
+                stopInterval = startPollingInterval(collect, pollMs, context?.isPaused);
             } catch (error) {
                 const providerError =
                     error instanceof ProviderError
@@ -240,9 +241,8 @@ export class PowercapProvider implements Provider {
 
         return () => {
             disposed = true;
-            if (this.intervalHandle) {
-                window.clearInterval(this.intervalHandle);
-            }
+            stopInterval?.();
+            stopInterval = undefined;
         };
     }
 }

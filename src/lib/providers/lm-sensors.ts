@@ -13,6 +13,7 @@ import {
     coerceNumber,
     isRecord,
     spawnJson,
+    startPollingInterval,
     POLLING_INTERVALS,
 } from './utils';
 
@@ -201,7 +202,6 @@ export const normalizeLmSensors = (payload: unknown): SensorSample[] => {
 
 export class LmSensorsProvider implements Provider {
     readonly name = 'lm-sensors';
-    private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -252,19 +252,15 @@ export class LmSensorsProvider implements Provider {
 
         void poll();
 
-        if (typeof window !== 'undefined') {
-            const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT;
-            this.intervalHandle = window.setInterval(() => {
-                void poll();
-            }, interval);
-        }
+        const interval = Math.max(
+            context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT,
+            POLLING_INTERVALS.MINIMUM,
+        );
+        const stopInterval = startPollingInterval(poll, interval, context?.isPaused);
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && this.intervalHandle) {
-                window.clearInterval(this.intervalHandle);
-                this.intervalHandle = undefined;
-            }
+            stopInterval();
         };
     }
 }
