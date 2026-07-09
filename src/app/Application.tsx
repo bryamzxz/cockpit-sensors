@@ -40,8 +40,7 @@ import type { SensorCategory, SensorChipGroup } from '../types/sensors';
 import { groupsForCategory } from '../utils/grouping';
 import { recordSamples } from '../lib/historyStore';
 import { getThresholdState, type ThresholdState } from '../utils/thresholds';
-import { _ } from '../utils/cockpit';
-import { syncWithParentPatternflyTheme } from '../lib/syncTheme';
+import { _, format } from '../utils/cockpit';
 
 import '../app.scss';
 
@@ -104,14 +103,14 @@ const summariseGroups = (groups: SensorChipGroup[]) => {
 
 const formatLastUpdate = (timestamp: number | null): string => {
     if (!timestamp) {
-        return _('Never');
+        return _('Not updated yet');
     }
 
     const delta = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
-    if (delta < 5) return _('just now');
-    if (delta < 60) return `${delta}s ${_('ago')}`;
-    if (delta < 3600) return `${Math.round(delta / 60)}m ${_('ago')}`;
-    return `${Math.round(delta / 3600)}h ${_('ago')}`;
+    if (delta < 5) return _('Updated just now');
+    if (delta < 60) return format(_('Updated $0s ago'), delta);
+    if (delta < 3600) return format(_('Updated $0m ago'), Math.round(delta / 60));
+    return format(_('Updated $0h ago'), Math.round(delta / 3600));
 };
 
 /**
@@ -128,17 +127,13 @@ const LastUpdated: React.FC<{ timestamp: number | null }> = React.memo(({ timest
 
     return (
         <span className="sensor-app__updated">
-            {_('Updated')}: {formatLastUpdate(timestamp)}
+            {formatLastUpdate(timestamp)}
         </span>
     );
 });
 LastUpdated.displayName = 'LastUpdated';
 
 export const Application: React.FC = () => {
-    React.useEffect(() => {
-        return syncWithParentPatternflyTheme();
-    }, []);
-
     const [activeKey, setActiveKey] = React.useState<number>(TABS[0].eventKey);
     const [viewMode, setViewMode] = React.useState<ViewMode>('table');
     const [density, setDensity] = React.useState<Density>('comfortable');
@@ -308,16 +303,23 @@ export const Application: React.FC = () => {
                         isInline
                         variant={AlertVariant.info}
                         title={_('No sensor backends are available on this system')}
+                        actionLinks={
+                            <AlertActionLink onClick={retry}>
+                                {_('Run detection again')}
+                            </AlertActionLink>
+                        }
                     >
                         <p>
                             {_('Install the recommended packages below and rerun the detection to expose hardware monitoring sensors.')}
                         </p>
+                        <p>{_('On Fedora, RHEL or CentOS:')}</p>
+                        <ClipboardCopy isCode isReadOnly hoverTip={_('Copy command')} clickTip={_('Copied')}>
+                            sudo dnf install lm_sensors nvme-cli smartmontools &amp;&amp; sudo sensors-detect --auto
+                        </ClipboardCopy>
+                        <p>{_('On Debian or Ubuntu:')}</p>
                         <ClipboardCopy isCode isReadOnly hoverTip={_('Copy command')} clickTip={_('Copied')}>
                             sudo apt install lm-sensors nvme-cli smartmontools &amp;&amp; sudo sensors-detect --auto
                         </ClipboardCopy>
-                        <Button variant="secondary" onClick={retry}>
-                            {_('Run detection again')}
-                        </Button>
                     </Alert>
                 );
             case 'no-data':
@@ -382,14 +384,14 @@ export const Application: React.FC = () => {
                 >
                     <div className="sensor-app__hero-row">
                         <div className="sensor-app__title-block">
-                            <h1 className="sensor-app__title">
-                                {_('Sensors')}
+                            <div className="sensor-app__title-row">
+                                <h1 className="sensor-app__title">{_('Sensors')}</h1>
                                 <Label isCompact color="blue">
                                     {totalReadings > 0
-                                        ? `${totalReadings} ${_('readings')}`
+                                        ? format(_('$0 readings'), totalReadings)
                                         : _('Idle')}
                                 </Label>
-                            </h1>
+                            </div>
                             <p className="sensor-app__subtitle">
                                 {_('Live hardware telemetry: temperature, fans, voltages and power.')}
                             </p>
@@ -420,7 +422,7 @@ export const Application: React.FC = () => {
                             ))}
                         </div>
                     )}
-                    <div className="sensor-app__shortcuts" aria-hidden="true">
+                    <div className="sensor-app__shortcuts">
                         <span><kbd>/</kbd>{_('Search')}</span>
                         <span><kbd>P</kbd>{_('Pause / resume')}</span>
                         <span><kbd>U</kbd>{_('Switch °C / °F')}</span>
@@ -449,7 +451,6 @@ export const Application: React.FC = () => {
                     activeKey={activeKey}
                     onSelect={handleTabSelect}
                     aria-label={_('Sensor category list')}
-                    role="region"
                     mountOnEnter
                     unmountOnExit
                 >

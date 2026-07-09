@@ -69,6 +69,28 @@ describe('SensorTable component', () => {
         expect(within(rows[1]).getByText('CPU')).toBeInTheDocument();
     });
 
+    it('clears the search filter from the no-matches empty state', () => {
+        const onSearchChange = vi.fn();
+        render(
+            <SensorTable
+                groups={groups}
+                category="temperature"
+                unit="C"
+                onUnitChange={() => {}}
+                refreshMs={5000}
+                onRefreshChange={() => {}}
+                pinnedKeys={[]}
+                onTogglePinned={() => {}}
+                searchTerm="does-not-match-anything"
+                onSearchChange={onSearchChange}
+            />,
+        );
+
+        const clearButton = screen.getByRole('button', { name: /clear filter/i });
+        clearButton.click();
+        expect(onSearchChange).toHaveBeenCalledWith('');
+    });
+
     it('shows a zero state when there are no readings', () => {
         render(
             <SensorTable

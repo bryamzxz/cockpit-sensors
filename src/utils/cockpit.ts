@@ -12,4 +12,11 @@ export const gettext: CockpitGettext = message => resolveCockpit().gettext(messa
 
 export const _: CockpitGettext = gettext;
 
+/**
+ * cockpit.format positional substitution ("Updated $0 ago"), so translated
+ * strings stay whole sentences instead of untranslatable concatenations.
+ */
+export const format = (template: string, ...args: unknown[]): string =>
+    resolveCockpit().format(template, ...args);
+
 export const getCockpit = resolveCockpit;

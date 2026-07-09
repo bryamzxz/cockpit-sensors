@@ -18,6 +18,7 @@
  */
 
 import '../vendor/cockpit-page.scss';
+import './lib/darkTheme';
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';

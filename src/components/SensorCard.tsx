@@ -89,7 +89,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
                 >
                     <span
                         className="sensor-progress__bar"
-                        style={{ inlineSize: `${Math.max(2, Math.min(100, progressPercent))}%` }}
+                        style={{ inlineSize: `${Math.max(0, Math.min(100, progressPercent))}%` }}
                     />
                 </div>
             )}
