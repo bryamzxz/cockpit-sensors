@@ -1,7 +1,7 @@
 import { getCockpit } from '../../utils/cockpit';
 import type { Cockpit } from '../../types/cockpit';
 import { Provider, ProviderContext, ProviderError, SensorSample, SENSOR_KIND_TO_UNIT } from './types';
-import { isRecord, isValidDevicePath, spawnJson, POLLING_INTERVALS } from './utils';
+import { isRecord, isValidDevicePath, spawnJson, startPollingInterval, POLLING_INTERVALS } from './utils';
 
 const PROVIDER_NAME = 'smartctl';
 const UNAVAILABLE_MESSAGE = 'smartmontools is not available on this system';
@@ -82,8 +82,9 @@ const listSmartctlDevices = async (cockpitInstance: Cockpit): Promise<SmartctlDe
 };
 
 const readDeviceData = async (cockpitInstance: Cockpit, devicePath: string): Promise<SmartctlDeviceData> => {
-    // Use -i for device info and -A for attributes, combined in one call
-    const payload = await runJsonCommand(cockpitInstance, ['smartctl', '-i', '-A', '-j', devicePath]);
+    // -i for device info, -A for attributes; -n standby avoids spinning up
+    // disks that are sleeping just to read their temperature.
+    const payload = await runJsonCommand(cockpitInstance, ['smartctl', '-i', '-A', '-n', 'standby', '-j', devicePath]);
     if (!isRecord(payload)) {
         return {};
     }
@@ -140,7 +141,6 @@ export const buildSample = (device: SmartctlDeviceInfo, temperature: number): Se
 
 export class SmartctlProvider implements Provider {
     readonly name = 'smartctl';
-    private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -164,10 +164,19 @@ export class SmartctlProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
+        let devices: SmartctlDeviceInfo[] = [];
+        let lastScanAt = 0;
 
         const poll = async () => {
             try {
-                const devices = await listSmartctlDevices(cockpitInstance);
+                // Device topology changes rarely; keep the list cached and
+                // only re-scan on a slow schedule instead of every poll.
+                const now = Date.now();
+                if (devices.length === 0 || now - lastScanAt >= POLLING_INTERVALS.DEVICE_RESCAN) {
+                    devices = await listSmartctlDevices(cockpitInstance);
+                    lastScanAt = now;
+                }
+
                 if (disposed) {
                     return;
                 }
@@ -177,8 +186,7 @@ export class SmartctlProvider implements Provider {
                     return;
                 }
 
-                const samples: SensorSample[] = [];
-                for (const device of devices) {
+                const results = await Promise.all(devices.map(async device => {
                     try {
                         const data = await readDeviceData(cockpitInstance, device.name);
 
@@ -191,24 +199,21 @@ export class SmartctlProvider implements Provider {
                         }
 
                         const temperature = extractTemperature(data);
-                        if (typeof temperature === 'number') {
-                            samples.push(buildSample(device, temperature));
-                        }
+                        return typeof temperature === 'number' ? buildSample(device, temperature) : null;
                     } catch (error) {
-                        if (error instanceof ProviderError) {
-                            if (error.code === 'permission-denied') {
-                                context?.onError?.(error);
-                                return;
-                            }
-
-                            if (error.code === 'unavailable') {
-                                continue;
-                            }
+                        if (error instanceof ProviderError && error.code === 'permission-denied') {
+                            throw error;
                         }
+
+                        return null;
                     }
+                }));
+
+                if (disposed) {
+                    return;
                 }
 
-                onChange(samples);
+                onChange(results.filter((sample): sample is SensorSample => sample !== null));
             } catch (error) {
                 if (disposed) {
                     return;
@@ -222,19 +227,14 @@ export class SmartctlProvider implements Provider {
 
         void poll();
 
-        if (typeof window !== 'undefined') {
-            const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.NVME;
-            this.intervalHandle = window.setInterval(() => {
-                void poll();
-            }, interval);
-        }
+        // SMART data changes slowly; never let a fast dashboard refresh
+        // preference drive per-disk wake-ups below the disk interval.
+        const interval = Math.max(context?.refreshIntervalMs ?? POLLING_INTERVALS.NVME, POLLING_INTERVALS.NVME);
+        const stopInterval = startPollingInterval(poll, interval, context?.isPaused);
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && this.intervalHandle) {
-                window.clearInterval(this.intervalHandle);
-                this.intervalHandle = undefined;
-            }
+            stopInterval();
         };
     }
 }
