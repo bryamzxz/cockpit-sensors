@@ -3,6 +3,7 @@ import './Sparkline.scss';
 
 import type { Sample } from '../lib/history';
 import type { ThresholdState } from '../utils/thresholds';
+import { _, format } from '../utils/cockpit';
 
 export interface SparklineProps {
     data: Sample[];
@@ -62,7 +63,11 @@ export const Sparkline: React.FC<SparklineProps> = ({
     const values = data.map(sample => sample.v);
     const dataMin = Math.min(...values);
     const dataMax = Math.max(...values);
-    const padding = (dataMax - dataMin) * 0.15 || 0.5;
+    // Enforce a minimum vertical span so a stable sensor with ±0.3 units of
+    // jitter reads as a flat line instead of full-amplitude waves.
+    const MIN_SPAN = 2;
+    const rawSpan = dataMax - dataMin;
+    const padding = Math.max(rawSpan * 0.15, (MIN_SPAN - rawSpan) / 2, 0.25);
     const min = dataMin - padding;
     const max = dataMax + padding;
     const range = max - min || 1;
@@ -134,7 +139,7 @@ export const Sparkline: React.FC<SparklineProps> = ({
             className={`sensor-sparkline sensor-sparkline--${threshold}`}
             width={width}
             height={height}
-            aria-label={`Trend with ${data.length} samples`}
+            aria-label={format(_('Trend with $0 samples'), data.length)}
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
         >
@@ -172,10 +177,15 @@ export const Sparkline: React.FC<SparklineProps> = ({
                         y2={height - inset}
                     />
                     <circle cx={hover.x} cy={hover.y} r={3} className="sensor-sparkline__dot" />
+                    <text
+                        className="sensor-sparkline__tooltip"
+                        x={Math.min(Math.max(hover.x, 22), width - 22)}
+                        y={hover.y - 6 < 10 ? hover.y + 14 : hover.y - 6}
+                        textAnchor="middle"
+                    >
+                        {formatTooltipValue(hover.value, unit)}
+                    </text>
                 </>
-            )}
-            {hover && (
-                <title>{formatTooltipValue(hover.value, unit)}</title>
             )}
         </svg>
     );

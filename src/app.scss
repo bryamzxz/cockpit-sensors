@@ -12,8 +12,6 @@ body {
 }
 
 :root {
-    color-scheme: light dark;
-
     --sensor-sparkline-stroke: var(--pf-t--global--color--brand--default, var(--pf-v6-global--primary-color--100));
     --sensor-sparkline-axis: var(--pf-t--global--border--color--default, var(--pf-v6-global--BorderColor--100));
     --sensor-sparkline-warning: var(--pf-t--global--icon--color--status--warning--default, var(--pf-v6-global--warning-color--100));
@@ -59,13 +57,16 @@ body {
     gap: var(--pf-t--global--spacer--xs, 0.25rem);
 }
 
+.sensor-app__title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm, 0.5rem);
+}
+
 .sensor-app__title {
     margin: 0;
     font-size: var(--pf-t--global--font--size--2xl, 1.5rem);
     font-weight: var(--pf-t--global--font--weight--heading--default, 700);
-    display: flex;
-    align-items: center;
-    gap: var(--pf-t--global--spacer--sm, 0.5rem);
 }
 
 .sensor-app__subtitle {
@@ -106,10 +107,15 @@ body {
     border-radius: 50%;
     background: currentColor;
     box-shadow: 0 0 0 0.25rem color-mix(in srgb, currentColor 18%, transparent);
-    animation: sensor-pulse 1.8s ease-in-out infinite;
 }
 
-.sensor-app__status-pill--idle::before { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+    .sensor-app__status-pill::before {
+        animation: sensor-pulse 1.8s ease-in-out infinite;
+    }
+
+    .sensor-app__status-pill--idle::before { animation: none; }
+}
 
 @keyframes sensor-pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
@@ -210,19 +216,11 @@ body {
     flex-direction: column;
     gap: 0.25rem;
     background: var(--sensor-bg-surface);
-    transition: transform 0.15s ease, border-color 0.15s ease;
-}
-
-.sensor-summary__card:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--sensor-sparkline-stroke) 40%, var(--sensor-border));
 }
 
 .sensor-summary__label {
     color: var(--sensor-text-muted);
     font-size: var(--pf-t--global--font--size--xs, 0.75rem);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
 }
 
 .sensor-summary__value {
@@ -300,8 +298,6 @@ body {
 .sensor-sources__label {
     color: var(--sensor-text-muted);
     font-size: var(--pf-t--global--font--size--xs, 0.75rem);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     margin-inline-end: 0.25rem;
 }
 
@@ -313,55 +309,10 @@ body {
     background: var(--sensor-bg-surface);
 }
 
-.sensor-table {
-    inline-size: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-}
-
-.sensor-table thead th {
-    text-align: start;
-    font-weight: 600;
-    font-size: var(--pf-t--global--font--size--xs, 0.75rem);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--sensor-text-muted);
-    padding: 0.6rem 0.75rem;
-    border-block-end: 1px solid var(--sensor-border);
-    background: var(--sensor-bg-surface);
-}
-
-.sensor-table tbody td {
-    padding: 0.55rem 0.75rem;
-    border-block-end: 1px solid var(--sensor-border);
-    font-size: var(--pf-t--global--font--size--sm, 0.875rem);
-    vertical-align: middle;
-}
-
-.sensor-table tbody tr:last-child td {
-    border-block-end: none;
-}
-
-.sensor-table tbody tr {
-    transition: background 0.12s ease;
-}
-
-.sensor-table tbody tr:hover {
-    background: var(--sensor-bg-hover);
-}
-
+/* Layout, padding, density and the responsive stacked mode come from
+   PatternFly's Table component; only sensor-specific accents live here. */
 .sensor-table tbody tr[data-pinned="true"] {
     background: color-mix(in srgb, var(--sensor-sparkline-stroke) 6%, transparent);
-}
-
-.sensor-table--compact tbody td,
-.sensor-table--compact thead th {
-    padding-block: 0.3rem;
-}
-
-.sensor-table--comfortable tbody td,
-.sensor-table--comfortable thead th {
-    padding-block: 0.8rem;
 }
 
 .sensor-table .sensor-row__chip-label {
@@ -385,7 +336,7 @@ body {
 }
 
 .sensor-row__pin-btn[data-pinned="true"] {
-    color: var(--pf-t--global--icon--color--status--warning--default, #f4c145);
+    color: var(--pf-t--global--icon--color--status--warning--default);
 }
 
 .sensor-row__pin-btn:hover {
@@ -410,8 +361,10 @@ body {
 .sensor-reading--warning { color: var(--sensor-sparkline-warning); }
 .sensor-reading--danger { color: var(--sensor-sparkline-danger); }
 
-.sensor-reading--changed {
-    animation: sensor-flash 0.6s ease;
+@media (prefers-reduced-motion: no-preference) {
+    .sensor-reading--changed {
+        animation: sensor-flash 0.6s ease;
+    }
 }
 
 @keyframes sensor-flash {
@@ -584,7 +537,12 @@ body {
             var(--sensor-bg-hover) 50%,
             var(--sensor-bg-surface) 100%);
     background-size: 200% 100%;
-    animation: sensor-shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .sensor-skeleton__card {
+        animation: sensor-shimmer 1.4s linear infinite;
+    }
 }
 
 @keyframes sensor-shimmer {
