@@ -25,7 +25,43 @@ export const POLLING_INTERVALS = {
     MINIMUM: 500,
     /** Throttle delay for batching rapid file watch events */
     THROTTLE: 500,
+    /** How often disk providers re-scan for added/removed devices */
+    DEVICE_RESCAN: 60000,
 } as const;
+
+/**
+ * Starts a polling interval with two guards every provider needs:
+ * a tick is skipped while the previous poll is still in flight, and
+ * while the dashboard is paused (`isPaused` returns true).
+ *
+ * @param poll - The async poll function to run on each tick
+ * @param intervalMs - Interval between ticks in milliseconds
+ * @param isPaused - Optional callback consulted before each tick
+ * @returns A cancel function that stops the interval
+ */
+export const startPollingInterval = (
+    poll: () => Promise<void>,
+    intervalMs: number,
+    isPaused?: () => boolean,
+): (() => void) => {
+    if (typeof window === 'undefined') {
+        return () => undefined;
+    }
+
+    let inFlight = false;
+    const handle = window.setInterval(() => {
+        if (inFlight || isPaused?.()) {
+            return;
+        }
+
+        inFlight = true;
+        void poll().finally(() => {
+            inFlight = false;
+        });
+    }, intervalMs);
+
+    return () => window.clearInterval(handle);
+};
 
 /**
  * Checks if an error indicates a permission denied condition.

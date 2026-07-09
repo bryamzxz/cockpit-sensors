@@ -19,12 +19,23 @@ export const normaliseTemperature = (value: number, unit: TemperatureUnit): numb
     return (value - 32) * (5 / 9);
 };
 
+// Intl.NumberFormat construction is expensive; with hundreds of readings
+// formatted on every refresh the instances are worth caching per options.
+const formatterCache = new Map<string, Intl.NumberFormat>();
+
 export const formatMeasurement = (value: number, options?: Intl.NumberFormatOptions): string => {
-    const formatter = new Intl.NumberFormat(undefined, {
+    const resolved: Intl.NumberFormatOptions = {
         maximumFractionDigits: Math.abs(value) < 10 ? 2 : 1,
         minimumFractionDigits: 0,
         ...options,
-    });
+    };
+
+    const key = JSON.stringify(resolved);
+    let formatter = formatterCache.get(key);
+    if (!formatter) {
+        formatter = new Intl.NumberFormat(undefined, resolved);
+        formatterCache.set(key, formatter);
+    }
 
     return formatter.format(value);
 };

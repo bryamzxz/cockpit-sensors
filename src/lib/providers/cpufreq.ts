@@ -23,6 +23,7 @@ import { Provider, ProviderContext, ProviderError, SensorSample } from './types'
 import {
     readFile as readFileUtil,
     readNumberFile as readNumberFileUtil,
+    startPollingInterval,
     POLLING_INTERVALS,
 } from './utils';
 
@@ -92,7 +93,6 @@ export const buildCoreSample = (coreIndex: number, freqMhz: number): SensorSampl
 
 export class CpuFreqProvider implements Provider {
     readonly name = 'cpufreq';
-    private intervalHandle: number | undefined;
 
     async isAvailable(): Promise<boolean> {
         const cockpitInstance = getCockpit();
@@ -108,6 +108,7 @@ export class CpuFreqProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
+        let stopInterval: (() => void) | undefined;
         let coreIndices: number[] = [];
 
         const poll = async () => {
@@ -116,15 +117,20 @@ export class CpuFreqProvider implements Provider {
             }
 
             try {
-                const samples: SensorSample[] = [];
+                const frequencies = await Promise.all(coreIndices.map(index =>
+                    readCpufreqNumber(
+                        cockpitInstance,
+                        `${CPUFREQ_ROOT}/cpu${index}/cpufreq/scaling_cur_freq`,
+                        KHZ_TO_MHZ,
+                    )));
 
-                for (const index of coreIndices) {
-                    const path = `${CPUFREQ_ROOT}/cpu${index}/cpufreq/scaling_cur_freq`;
-                    const freqMhz = await readCpufreqNumber(cockpitInstance, path, KHZ_TO_MHZ);
+                const samples: SensorSample[] = [];
+                coreIndices.forEach((index, position) => {
+                    const freqMhz = frequencies[position];
                     if (typeof freqMhz === 'number') {
                         samples.push(buildCoreSample(index, freqMhz));
                     }
-                }
+                });
 
                 if (!disposed) {
                     onChange(samples);
@@ -163,12 +169,11 @@ export class CpuFreqProvider implements Provider {
                     return;
                 }
 
-                if (typeof window !== 'undefined') {
-                    const interval = context?.refreshIntervalMs ?? POLLING_INTERVALS.CPUFREQ;
-                    this.intervalHandle = window.setInterval(() => {
-                        void poll();
-                    }, interval);
-                }
+                const interval = Math.max(
+                    context?.refreshIntervalMs ?? POLLING_INTERVALS.CPUFREQ,
+                    POLLING_INTERVALS.MINIMUM,
+                );
+                stopInterval = startPollingInterval(poll, interval, context?.isPaused);
             } catch (error) {
                 if (disposed) {
                     return;
@@ -190,10 +195,8 @@ export class CpuFreqProvider implements Provider {
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && this.intervalHandle) {
-                window.clearInterval(this.intervalHandle);
-                this.intervalHandle = undefined;
-            }
+            stopInterval?.();
+            stopInterval = undefined;
         };
     }
 }

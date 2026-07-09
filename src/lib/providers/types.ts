@@ -34,6 +34,8 @@ export class ProviderError extends Error {
 export interface ProviderContext {
     onError?: (error: ProviderError) => void;
     refreshIntervalMs?: number;
+    /** Consulted before each poll; while true the provider skips its work. */
+    isPaused?: () => boolean;
 }
 
 export interface Provider {

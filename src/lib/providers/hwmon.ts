@@ -5,6 +5,7 @@ import {
     readFile as readFileUtil,
     readNumberFile as readNumberFileUtil,
     spawnText as spawnTextUtil,
+    startPollingInterval,
     trim,
     POLLING_INTERVALS,
 } from './utils';
@@ -135,26 +136,26 @@ const extractSensorsFromListing = async (
             .map(trim)
             .filter(entry => entry.endsWith('_input'));
 
-    const descriptors: HwmonSensorDescriptor[] = [];
-
-    for (const entry of entries) {
+    // Label lookups are independent per sensor; running them serially adds
+    // one websocket round-trip per sensor to the time-to-first-data.
+    const descriptors = await Promise.all(entries.map(async (entry): Promise<HwmonSensorDescriptor | null> => {
         const match = entry.match(/^(?<prefix>[a-z]+)(?<index>\d+)_input$/);
         if (!match || !match.groups) {
-            continue;
+            return null;
         }
 
         const prefix = match.groups.prefix;
         const index = match.groups.index;
         const kind = sensorKindForPrefix(prefix);
         if (!kind) {
-            continue;
+            return null;
         }
 
         const label = await resolveSensorLabel(cockpitInstance, chipPath, prefix, index, `${chipLabel} ${prefix}${index}`);
         const unit = unitForKind(kind);
         const scale = scaleForKind(kind);
 
-        descriptors.push({
+        return {
             id: `${chipId}:${prefix}${index}`,
             chipId,
             chipLabel,
@@ -167,10 +168,10 @@ const extractSensorsFromListing = async (
             minPath: `${chipPath}/${prefix}${index}_min`,
             maxPath: `${chipPath}/${prefix}${index}_max`,
             critPath: `${chipPath}/${prefix}${index}_crit`,
-        });
-    }
+        };
+    }));
 
-    return descriptors;
+    return descriptors.filter((descriptor): descriptor is HwmonSensorDescriptor => descriptor !== null);
 };
 
 const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChipDescriptor[]> => {
@@ -188,9 +189,7 @@ const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChip
             .map(trim)
             .filter(path => path.length > 0);
 
-    const chips: HwmonChipDescriptor[] = [];
-
-    for (const chipPath of chipPaths) {
+    const chips = await Promise.all(chipPaths.map(async chipPath => {
         const name = (await readFile(cockpitInstance, `${chipPath}/name`)) ?? '';
         const label = name ? trim(name) : chipPath.split('/').pop() ?? chipPath;
         const id = chipPath.split('/').pop() ?? chipPath;
@@ -207,18 +206,18 @@ const buildChipDescriptors = async (cockpitInstance: Cockpit): Promise<HwmonChip
         const sensors = await extractSensorsFromListing(cockpitInstance, id, label, label, chipPath, listing);
 
         if (sensors.length === 0) {
-            continue;
+            return null;
         }
 
-        chips.push({
+        return {
             id,
             name: label,
             label,
             sensors,
-        });
-    }
+        };
+    }));
 
-    return chips;
+    return chips.filter((chip): chip is HwmonChipDescriptor => chip !== null);
 };
 
 const buildSample = (descriptor: HwmonSensorDescriptor, value: number): SensorSample => ({
@@ -256,8 +255,7 @@ export class HwmonProvider implements Provider {
     start(onChange: (samples: SensorSample[]) => void, context?: ProviderContext) {
         const cockpitInstance = getCockpit();
         let disposed = false;
-        let polling = false;
-        let intervalHandle: number | undefined;
+        let stopInterval: (() => void) | undefined;
         let sensors: HwmonSensorDescriptor[] = [];
 
         const reportError = (error: unknown, fallbackMessage: string) => {
@@ -277,11 +275,10 @@ export class HwmonProvider implements Provider {
         const poll = async () => {
             // sysfs attributes never emit inotify events, so values must be
             // re-read on every cycle instead of relying on file watches.
-            if (disposed || polling) {
+            if (disposed) {
                 return;
             }
 
-            polling = true;
             try {
                 const values = await Promise.all(sensors.map(sensor =>
                     readNumberFile(cockpitInstance, sensor.inputPath, sensor.scale)));
@@ -300,8 +297,6 @@ export class HwmonProvider implements Provider {
                 onChange(samples);
             } catch (error) {
                 reportError(error, 'hwmon read failure');
-            } finally {
-                polling = false;
             }
         };
 
@@ -331,15 +326,11 @@ export class HwmonProvider implements Provider {
                     return;
                 }
 
-                if (typeof window !== 'undefined') {
-                    const interval = Math.max(
-                        context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT,
-                        POLLING_INTERVALS.MINIMUM,
-                    );
-                    intervalHandle = window.setInterval(() => {
-                        void poll();
-                    }, interval);
-                }
+                const interval = Math.max(
+                    context?.refreshIntervalMs ?? POLLING_INTERVALS.DEFAULT,
+                    POLLING_INTERVALS.MINIMUM,
+                );
+                stopInterval = startPollingInterval(poll, interval, context?.isPaused);
             } catch (error) {
                 reportError(error, 'hwmon failure');
             }
@@ -349,10 +340,8 @@ export class HwmonProvider implements Provider {
 
         return () => {
             disposed = true;
-            if (typeof window !== 'undefined' && intervalHandle) {
-                window.clearInterval(intervalHandle);
-                intervalHandle = undefined;
-            }
+            stopInterval?.();
+            stopInterval = undefined;
         };
     }
 }

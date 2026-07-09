@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import type { UseSensorsResult } from '../hooks/useSensors';
 
-const useSensorsMock = vi.fn<(refreshMs?: number) => UseSensorsResult>();
+const useSensorsMock = vi.fn<(refreshMs?: number, isPaused?: boolean) => UseSensorsResult>();
 
 vi.mock('@patternfly/react-core', async () => await import('../__mocks__/@patternfly/react-core'));
 vi.mock('@patternfly/react-icons', async () => await import('../__mocks__/@patternfly/react-icons'));
@@ -27,7 +27,7 @@ vi.mock('../hooks/useSensorPreferences', () => ({
     }),
 }));
 vi.mock('../hooks/useSensors', () => ({
-    useSensors: (refreshMs?: number) => useSensorsMock(refreshMs),
+    useSensors: (refreshMs?: number, isPaused?: boolean) => useSensorsMock(refreshMs, isPaused),
 }));
 vi.mock('cockpit', () => ({
     default: {
@@ -63,7 +63,7 @@ describe('Application', () => {
 
         render(<Application />);
 
-        expect(useSensorsMock).toHaveBeenCalledWith(5000);
+        expect(useSensorsMock).toHaveBeenCalledWith(5000, false);
         expect(screen.getByText('No sensor backends are available on this system')).toBeInTheDocument();
     });
 
