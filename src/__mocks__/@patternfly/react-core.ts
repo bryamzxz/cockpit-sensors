@@ -50,11 +50,45 @@ export const CodeBlockCode = ({ children, ...props }: ComponentProps) =>
     React.createElement('code', props, children);
 export const Content = createElement('section');
 
-export const Label = ({ children, ...props }: ComponentProps & { isCompact?: boolean; color?: string }) => {
-    const { isCompact, color, ...rest } = props;
+export const Label = ({
+    children,
+    ...props
+}: ComponentProps & { isCompact?: boolean; color?: string; status?: string }) => {
+    const { isCompact, color, status, ...rest } = props;
     void isCompact;
     void color;
+    return React.createElement('span', { ...rest, 'data-status': status }, children);
+};
+
+export const Badge = ({ children, ...props }: ComponentProps & { isRead?: boolean }) => {
+    const { isRead, ...rest } = props;
+    void isRead;
     return React.createElement('span', rest, children);
+};
+
+export const Card = ({ children, ...props }: ComponentProps & { isCompact?: boolean }) => {
+    const { isCompact, ...rest } = props;
+    void isCompact;
+    return React.createElement('article', rest, children);
+};
+
+export const CardBody = createElement('div');
+
+export const Gallery = ({
+    children,
+    ...props
+}: ComponentProps & { hasGutter?: boolean; minWidths?: Record<string, string> }) => {
+    const { hasGutter, minWidths, ...rest } = props;
+    void hasGutter;
+    void minWidths;
+    return React.createElement('section', rest, children);
+};
+
+export const Skeleton = ({ ...props }: ComponentProps & { height?: string; screenreaderText?: string }) => {
+    const { height, screenreaderText, ...rest } = props;
+    void height;
+    void screenreaderText;
+    return React.createElement('div', { ...rest, 'data-skeleton': true });
 };
 
 export const LabelGroup = ({
@@ -166,6 +200,15 @@ export const EmptyStateIcon = ({ icon }: { icon?: React.ElementType }) => {
 
 export const Toolbar = createElement('div');
 export const ToolbarContent = createElement('div');
+export const ToolbarToggleGroup = ({
+    children,
+    ...props
+}: ComponentProps & { toggleIcon?: React.ReactNode; breakpoint?: string }) => {
+    const { toggleIcon, breakpoint, ...rest } = props;
+    void toggleIcon;
+    void breakpoint;
+    return React.createElement('div', rest, children);
+};
 export const ToolbarGroup = ({ children, ...props }: ComponentProps) => {
     const { align, alignItems, variant, ...rest } = props;
     void align;

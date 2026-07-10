@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sensors 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-09 16:09+0100\n"
+"POT-Creation-Date: 2026-07-09 20:56-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,211 +14,427 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 
-#: src/index.html:20
-msgid "Cockpit Sensors"
-msgstr "Cockpit Sensoren"
+#: src/app/Application.tsx:393
+msgid "$0 readings"
+msgstr "$0 Messwerte"
 
-#: src/manifest.json:8 
-#: org.cockpit-project.sensors.metainfo.xml:5 
-#: src/app.jsx:162
+#: src/components/SensorTable.tsx:100
+msgid "10s"
+msgstr "10s"
+
+#: src/components/SensorTable.tsx:98
+msgid "2s"
+msgstr "2s"
+
+#: src/components/SensorTable.tsx:99
+msgid "5s"
+msgstr "5s"
+
+#: src/components/SensorTable.tsx:187
+msgid "Active fans"
+msgstr "Aktive Lüfter"
+
+#: src/components/SensorTable.tsx:197
+msgid "Active power sensors"
+msgstr "Aktive Leistungssensoren"
+
+#: src/components/SensorTable.tsx:202
+msgid "Active sensors"
+msgstr "Aktive Sensoren"
+
+#: src/components/SensorTable.tsx:182
+msgid "Active temperature sensors"
+msgstr "Aktive Temperatursensoren"
+
+#: src/components/SensorTable.tsx:192
+msgid "Active voltage rails"
+msgstr "Aktive Spannungsschienen"
+
+#: src/app/Application.tsx:364
+msgid "All sensors healthy"
+msgstr "Alle Sensoren in Ordnung"
+
+#: src/app/Application.tsx:343
+msgid ""
+"An unexpected error prevented the Sensors page from retrieving live metrics."
+msgstr ""
+"Ein unerwarteter Fehler verhinderte, dass die Sensorseite Live-Metriken "
+"abrief."
+
+#: src/app/Application.tsx:363
+msgid "Approaching threshold"
+msgstr "Nähert sich dem Schwellenwert"
+
+#: src/components/SensorTable.tsx:189
+msgid "Average fan speed"
+msgstr "Durchschnittliche Lüftergeschwindigkeit"
+
+#: src/components/SensorTable.tsx:199
+msgid "Average power draw"
+msgstr "Durchschnittliche Leistungsaufnahme"
+
+#: src/components/SensorTable.tsx:184
+msgid "Average temperature"
+msgstr "Durchschnittstemperatur"
+
+#: src/components/SensorTable.tsx:204
+msgid "Average value"
+msgstr "Durchschnittswert"
+
+#: src/components/SensorTable.tsx:194
+msgid "Average voltage"
+msgstr "Durchschnittsspannung"
+
+#: src/components/CsvModalViewer.tsx:62
+msgid "CSV content"
+msgstr "CSV-Inhalt"
+
+#: src/components/SensorTable.tsx:251
+msgid "Chip"
+msgstr "Chip"
+
+#: src/components/CsvModalViewer.tsx:80
+msgid "Close"
+msgstr "Schließen"
+
+#: src/app/Application.tsx:297
+msgid ""
+"Cockpit could not read sensor data without elevated permissions. Retry the "
+"operation to trigger a privilege prompt."
+msgstr ""
+"Cockpit konnte ohne erhöhte Berechtigungen keine Sensordaten lesen. "
+"Versuchen Sie den Vorgang erneut, um eine Berechtigungsabfrage auszulösen."
+
+#: src/components/SensorTable.tsx:77
+msgid "Cockpit did not receive any temperature readings for this system."
+msgstr "Cockpit hat für dieses System keine Temperaturmesswerte erhalten."
+
+#: src/app/Application.tsx:60
+msgid "Compare temperature sensors reported by the host system."
+msgstr "Vergleichen Sie die vom System gemeldeten Temperatursensoren."
+
+#: src/app/Application.tsx:318 src/app/Application.tsx:322
+msgid "Copied"
+msgstr "Kopiert"
+
+#: src/components/CsvModalViewer.tsx:69
+msgid "Copy"
+msgstr "Kopieren"
+
+#: src/app/Application.tsx:318 src/app/Application.tsx:322
+msgid "Copy command"
+msgstr "Befehl kopieren"
+
+#: src/components/CsvModalViewer.tsx:67
+msgid "Copy to clipboard"
+msgstr "In die Zwischenablage kopieren"
+
+#: src/components/SensorTable.tsx:264
+msgid "Current"
+msgstr "Aktuell"
+
+#: src/app/Application.tsx:420
+msgid "Data sources"
+msgstr "Datenquellen"
+
+#: src/components/CsvModalViewer.tsx:75
+msgid "Download"
+msgstr "Herunterladen"
+
+#: src/app/Application.tsx:358
+msgid "Error"
+msgstr "Fehler"
+
+#: src/components/CsvModalViewer.tsx:50
+msgid "Export CSV"
+msgstr "CSV exportieren"
+
+#: src/app/Application.tsx:65
+msgid "Fans"
+msgstr "Lüfter"
+
+#: src/components/SensorTable.tsx:188
+msgid "Fastest fan"
+msgstr "Schnellster Lüfter"
+
+#: src/components/SensorTable.tsx:203
+msgid "Highest value"
+msgstr "Höchster Wert"
+
+#: src/components/SensorTable.tsx:193
+msgid "Highest voltage"
+msgstr "Höchste Spannung"
+
+#: src/components/SensorTable.tsx:183
+msgid "Hottest reading"
+msgstr "Heißester Messwert"
+
+#: src/app/Application.tsx:394
+msgid "Idle"
+msgstr "Inaktiv"
+
+#: src/app/Application.tsx:315
+msgid ""
+"Install the recommended packages below and rerun the detection to expose "
+"hardware monitoring sensors."
+msgstr ""
+"Installieren Sie die unten empfohlenen Pakete und führen Sie die Erkennung "
+"erneut aus, um Hardware-Überwachungssensoren bereitzustellen."
+
+#: src/app/Application.tsx:398
+msgid "Live hardware telemetry: temperature, fans, voltages and power."
+msgstr "Live-Hardware-Telemetrie: Temperatur, Lüfter, Spannungen und Leistung."
+
+#: src/app/Application.tsx:495 src/app/Application.tsx:498
+msgid "Loading sensor data..."
+msgstr "Sensordaten werden geladen ..."
+
+#: src/app/Application.tsx:66
+msgid "Monitor cooling without reloading the page."
+msgstr "Überwachen Sie die Kühlung, ohne die Seite neu zu laden."
+
+#: src/app/Application.tsx:357
+msgid "Needs privileges"
+msgstr "Berechtigungen erforderlich"
+
+#: src/app/Application.tsx:359
+msgid "No backends"
+msgstr "Keine Backends"
+
+#: src/app/Application.tsx:360
+msgid "No data"
+msgstr "Keine Daten"
+
+#: src/components/SensorTable.tsx:80
+msgid "No fan telemetry available"
+msgstr "Keine Lüfter-Telemetrie verfügbar"
+
+#: src/app/Application.tsx:332
+msgid "No live sensor readings were reported"
+msgstr "Es wurden keine aktuellen Sensorwerte gemeldet"
+
+#: src/components/SensorTable.tsx:92
+msgid "No miscellaneous sensors captured"
+msgstr "Keine sonstigen Sensoren erfasst"
+
+#: src/components/SensorTable.tsx:88
+msgid "No power sensors found"
+msgstr "Keine Leistungssensoren gefunden"
+
+#: src/app/Application.tsx:307
+msgid "No sensor backends are available on this system"
+msgstr "Auf diesem System sind keine Sensor-Backends verfügbar"
+
+#: src/components/SensorTable.tsx:76
+msgid "No temperature sensors detected"
+msgstr "Keine Temperatursensoren erkannt"
+
+#: src/components/SensorTable.tsx:85
+msgid "No voltage inputs were reported by the available sensor backends."
+msgstr "Die verfügbaren Sensor-Backends haben keine Spannungseingänge gemeldet."
+
+#: src/components/SensorTable.tsx:84
+msgid "No voltage sensors reported"
+msgstr "Keine Spannungssensoren gemeldet"
+
+#: src/app/Application.tsx:108
+msgid "Not updated yet"
+msgstr "Noch nicht aktualisiert"
+
+#: src/app/Application.tsx:321
+msgid "On Debian or Ubuntu:"
+msgstr "Unter Debian oder Ubuntu:"
+
+#: src/app/Application.tsx:317
+msgid "On Fedora, RHEL or CentOS:"
+msgstr "Unter Fedora, RHEL oder CentOS:"
+
+#: src/app/Application.tsx:83
+msgid "Other"
+msgstr "Sonstige"
+
+#: src/app/Application.tsx:435
+msgid "Pause / resume"
+msgstr "Pausieren / fortsetzen"
+
+#: src/app/Application.tsx:361
+msgid "Paused"
+msgstr "Pausiert"
+
+#: src/components/SensorTable.tsx:198
+msgid "Peak power draw"
+msgstr "Maximale Leistungsaufnahme"
+
+#: src/components/SensorTable.tsx:235 src/components/SensorTable.tsx:241
+msgid "Pin sensor"
+msgstr "Sensor anheften"
+
+#: src/components/SensorTable.tsx:233
+msgid "Pinned status"
+msgstr "Anheftstatus"
+
+#: src/app/Application.tsx:77
+msgid "Power"
+msgstr "Leistung"
+
+#: src/components/SensorTable.tsx:89
+msgid "Power metrics were not exposed for this host or backend."
+msgstr "Für diesen Host oder dieses Backend wurden keine Leistungsmetriken bereitgestellt."
+
+#: src/app/Application.tsx:292
+msgid "Retry with privileges"
+msgstr "Mit Berechtigungen erneut versuchen"
+
+#: src/app/Application.tsx:310
+msgid "Run detection again"
+msgstr "Erkennung erneut ausführen"
+
+#: src/app/Application.tsx:434
+msgid "Search"
+msgstr "Suchen"
+
+#: src/components/SensorTable.tsx:261
+msgid "Sensor"
+msgstr "Sensor"
+
+#: src/app/Application.tsx:461
+msgid "Sensor category list"
+msgstr "Liste der Sensorkategorien"
+
+#: src/app/Application.tsx:289
+msgid "Sensor data requires administrative privileges"
+msgstr "Sensordaten erfordern administrative Berechtigungen"
+
+#: src/components/SensorSummary.tsx:30
+msgid "Sensor highlights"
+msgstr "Sensor-Übersicht"
+
+#: src/index.html:20 src/app/Application.tsx:390 src/manifest.json:0
+#: org.cockpit-project.sensors.metainfo.xml:5
 msgid "Sensors"
 msgstr "Sensoren"
 
+#: org.cockpit-project.sensors.metainfo.xml:6
 #: org.cockpit-project.sensors.metainfo.xml:8
 msgid "Sensors cockpit module"
 msgstr "Sensoren Cockpit Modul"
 
-#: src/app.jsx:86
-msgid "lm-sensors not found, you want install it ?"
-msgstr "lm-sensors nicht gefunden, möchten Sie es installieren?"
+#: src/app/Application.tsx:379
+msgid "Sensors dashboard"
+msgstr "Sensoren-Dashboard"
 
-#: src/app.jsx:95
-msgid "this version of lm-sensors don't suport output sensors data!"
-msgstr "diese Version von lm-sensors unterstützt keine Ausgabe von Sensordaten!"
+#: src/components/SensorTable.tsx:93
+msgid "Sensors outside the dedicated categories are not reporting data."
+msgstr "Sensoren außerhalb der festen Kategorien melden keine Daten."
 
-#: src/app.jsx:130
-msgid "lm-sensors has a bug that converts all data to fahrenheit, including voltage, fans and etc."
-msgstr "lm-sensors hat einen Fehler, der alle Daten in Fahrenheit umwandelt, einschließlich Spannung, Lüfter usw."
+#: src/app/Application.tsx:84
+msgid ""
+"Sensors that do not match temperature, fan, voltage or power categories."
+msgstr "Sensoren, die nicht in die Kategorien Temperatur, Lüfter, Spannung oder Leistung passen."
 
-#: src/app.jsx:200
-msgid "Show temperature in Fahrenheit"
-msgstr "Temperatur in Fahrenheit anzeigen"
+#: src/app/Application.tsx:436
+msgid "Switch °C / °F"
+msgstr "°C / °F umschalten"
 
-#: src/app.jsx:206
-msgid "Expand all cards"
-msgstr "Erweitern Sie alle Karten"
+#: src/app/Application.tsx:78
+msgid "System and package power draw reported by RAPL interfaces."
+msgstr "Vom RAPL gemeldete Leistungsaufnahme von System und Package."
 
-#: src/app.jsx:174
-msgid "Install"
-msgstr "Installieren"
+#: src/app/Application.tsx:59
+msgid "Temperatures"
+msgstr "Temperaturen"
 
-#: src/app/Application.tsx
-msgid "Sensor data requires administrative privileges"
-msgstr "Sensordaten erfordern administrative Berechtigungen"
+#: src/components/SensorTable.tsx:81
+msgid "The hardware monitoring stack did not expose any fan speed sensors."
+msgstr "Der Hardware-Monitoring-Stack hat keine Lüftergeschwindigkeitssensoren bereitgestellt."
 
-#: src/app/Application.tsx
-msgid "Retry with privileges"
-msgstr "Mit Berechtigungen erneut versuchen"
+#: src/app/Application.tsx:335
+msgid ""
+"This environment may not expose physical sensors. Virtual machines commonly "
+"omit hardware monitoring interfaces."
+msgstr ""
+"Diese Umgebung stellt möglicherweise keine physischen Sensoren bereit. "
+"Virtuelle Maschinen lassen Hardware-Überwachungsschnittstellen häufig weg."
 
-#: src/app/Application.tsx
-msgid "Cockpit could not read sensor data without elevated permissions. Retry the operation to trigger a privilege prompt."
-msgstr "Cockpit konnte ohne erhöhte Berechtigungen keine Sensordaten lesen. Versuchen Sie den Vorgang erneut, um eine Berechtigungsabfrage auszulösen."
+#: src/app/Application.tsx:362
+msgid "Threshold exceeded"
+msgstr "Schwellenwert überschritten"
 
-#: src/app/Application.tsx
-msgid "No sensor backends are available on this system"
-msgstr "Auf diesem System sind keine Sensor-Backends verfügbar"
+#: src/app/Application.tsx:437
+msgid "Toggle table / cards"
+msgstr "Tabelle / Karten umschalten"
 
-#: src/app/Application.tsx
-msgid "Install the recommended packages below and rerun the detection to expose hardware monitoring sensors."
-msgstr "Installieren Sie die unten empfohlenen Pakete und führen Sie die Erkennung erneut aus, um Hardware-Überwachungssensoren bereitzustellen."
-
-#: src/app/Application.tsx
-msgid "Copy command"
-msgstr "Befehl kopieren"
-
-#: src/app/Application.tsx
-msgid "Copied"
-msgstr "Kopiert"
-
-#: src/app/Application.tsx
-msgid "Run detection again"
-msgstr "Erkennung erneut ausführen"
-
-#: src/app/Application.tsx
-msgid "No live sensor readings were reported"
-msgstr "Es wurden keine aktuellen Sensorwerte gemeldet"
-
-#: src/app/Application.tsx
-msgid "This environment may not expose physical sensors. Virtual machines commonly omit hardware monitoring interfaces."
-msgstr "Diese Umgebung stellt möglicherweise keine physischen Sensoren bereit. Virtuelle Maschinen lassen Hardware-Überwachungsschnittstellen häufig weg."
-
-#: src/app/Application.tsx
-msgid "Unable to collect sensor data"
-msgstr "Sensordaten konnten nicht gesammelt werden"
-
-#: src/app/Application.tsx
-msgid "An unexpected error prevented the Sensors page from retrieving live metrics."
-msgstr "Ein unerwarteter Fehler verhinderte, dass die Sensorseite Live-Metriken abrief."
-
-#: src/app/Application.tsx
+#: src/app/Application.tsx:347
 msgid "Try again"
 msgstr "Erneut versuchen"
 
-#: src/app/Application.tsx
-msgid "Data sources"
-msgstr "Datenquellen"
+#: src/components/CsvModalViewer.tsx:73
+msgid "Try download again"
+msgstr "Download erneut versuchen"
 
-#: src/app/Application.tsx
-msgid "(active)"
-msgstr "(aktiv)"
-#: src/components/SensorTable.tsx
-msgid "No temperature sensors detected"
-msgstr ""
+#: src/app/Application.tsx:341
+msgid "Unable to collect sensor data"
+msgstr "Sensordaten konnten nicht gesammelt werden"
 
-#: src/components/SensorTable.tsx
-msgid "Cockpit did not receive any temperature readings for this system."
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "No fan telemetry available"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "The hardware monitoring stack did not expose any fan speed sensors."
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "No voltage sensors reported"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "No voltage inputs were reported by the available sensor backends."
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "No power sensors found"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Power metrics were not exposed for this host or backend."
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "No miscellaneous sensors captured"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Sensors outside the dedicated categories are not reporting data."
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Sensor table controls"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Refresh interval"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Refresh interval selector"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Every 10 seconds"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Every 5 seconds"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Every 2 seconds"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Temperature unit"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Temperature unit selector"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Degrees Celsius (°C)"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Degrees Fahrenheit (°F)"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Download session history as CSV"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Export CSV"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Pinned status"
-msgstr ""
-
-#: src/components/SensorTable.tsx
-msgid "Pin sensor"
-msgstr ""
-
-#: src/components/SensorTable.tsx
+#: src/components/SensorTable.tsx:235 src/components/SensorTable.tsx:241
 msgid "Unpin sensor"
-msgstr ""
+msgstr "Sensor lösen"
 
-#: src/components/SensorTable.tsx
-msgid "Session min/avg/max"
-msgstr ""
+#: src/app/Application.tsx:115
+msgid "Updated $0h ago"
+msgstr "Aktualisiert vor $0h"
 
-#: src/components/SensorTable.tsx
-msgid "Trend"
-msgstr ""
+#: src/app/Application.tsx:114
+msgid "Updated $0m ago"
+msgstr "Aktualisiert vor $0m"
 
-#: src/components/SensorTable.tsx
-msgid "Source"
-msgstr ""
+#: src/app/Application.tsx:113
+msgid "Updated $0s ago"
+msgstr "Aktualisiert vor $0s"
+
+#: src/app/Application.tsx:112
+msgid "Updated just now"
+msgstr "Gerade aktualisiert"
+
+#: src/app/Application.tsx:72
+msgid "Voltage readings exposed by power supplies and on-board rails."
+msgstr "Spannungswerte von Netzteilen und Onboard-Schienen."
+
+#: src/app/Application.tsx:71
+msgid "Voltages"
+msgstr "Spannungen"
+
+#: src/app/Application.tsx:428
+msgid "active"
+msgstr "aktiv"
+
+#: src/components/SensorTable.tsx:454
+msgid "samples"
+msgstr "Messungen"
+
+#: src/components/SensorTable.tsx:615
+msgid "seconds"
+msgstr "Sekunden"
+
+#~ msgid "lm-sensors not found, you want install it ?"
+#~ msgstr "lm-sensors nicht gefunden, möchten Sie es installieren?"
+
+#~ msgid "this version of lm-sensors don't suport output sensors data!"
+#~ msgstr ""
+#~ "diese Version von lm-sensors unterstützt keine Ausgabe von Sensordaten!"
+
+#~ msgid ""
+#~ "lm-sensors has a bug that converts all data to fahrenheit, including "
+#~ "voltage, fans and etc."
+#~ msgstr ""
+#~ "lm-sensors hat einen Fehler, der alle Daten in Fahrenheit umwandelt, "
+#~ "einschließlich Spannung, Lüfter usw."
+
+#~ msgid "Show temperature in Fahrenheit"
+#~ msgstr "Temperatur in Fahrenheit anzeigen"
+
+#~ msgid "Expand all cards"
+#~ msgstr "Erweitern Sie alle Karten"
+
+#~ msgid "Install"
+#~ msgstr "Installieren"

@@ -45,7 +45,17 @@ const aggregateSamples = (samplesByProvider: Map<string, SensorSample[]>): Sampl
     const aggregated: SampleWithProvider[] = [];
     const seen = new Set<string>();
 
+    // The kernel nvme driver exposes drive temperatures through hwmon (chip
+    // name "nvme", with Composite/Sensor readings). When present, the
+    // nvme-cli provider would report every drive a second time.
+    const hwmonCoversNvme = (samplesByProvider.get('hwmon') ?? [])
+            .some(sample => sample.chipName === 'nvme');
+
     for (const providerName of AGGREGATION_ORDER) {
+        if (providerName === 'nvme' && hwmonCoversNvme) {
+            continue;
+        }
+
         const samples = samplesByProvider.get(providerName) ?? [];
         for (const sample of samples) {
             const dedupeKey = `${sample.kind}:${sample.id}`;

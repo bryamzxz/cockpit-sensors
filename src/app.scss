@@ -82,46 +82,6 @@ body {
     flex-wrap: wrap;
 }
 
-.sensor-app__status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding-block: 0.25rem;
-    padding-inline: 0.6rem;
-    border-radius: 999px;
-    font-size: var(--pf-t--global--font--size--sm, 0.875rem);
-    font-weight: 600;
-    line-height: 1;
-    border: 1px solid var(--sensor-border);
-    background: var(--sensor-bg-surface);
-}
-
-.sensor-app__status-pill--normal { color: var(--sensor-sparkline-normal); }
-.sensor-app__status-pill--warning { color: var(--sensor-sparkline-warning); border-color: currentcolor; }
-.sensor-app__status-pill--danger { color: var(--sensor-sparkline-danger); border-color: currentcolor; }
-
-.sensor-app__status-pill::before {
-    content: "";
-    inline-size: 0.5rem;
-    block-size: 0.5rem;
-    border-radius: 50%;
-    background: currentcolor;
-    box-shadow: 0 0 0 0.25rem color-mix(in srgb, currentcolor 18%, transparent);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .sensor-app__status-pill::before {
-        animation: sensor-pulse 1.8s ease-in-out infinite;
-    }
-
-    .sensor-app__status-pill--idle::before { animation: none; }
-}
-
-@keyframes sensor-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.85); opacity: 0.6; }
-}
-
 .sensor-app__updated {
     color: var(--sensor-text-muted);
     font-size: var(--pf-t--global--font--size--sm, 0.875rem);
@@ -176,48 +136,20 @@ body {
     gap: 0.4rem;
 }
 
-.sensor-tab__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-inline-size: 1.25rem;
-    padding-inline: 0.35rem;
-    block-size: 1.25rem;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    background: var(--sensor-bg-hover);
-    color: var(--sensor-text-muted);
-    line-height: 1;
-}
-
+/* PF Badge provides the pill; only the severity accent is ours. */
 .sensor-tab__count[data-state="warning"] {
     background: color-mix(in srgb, var(--sensor-sparkline-warning) 18%, transparent);
-    color: var(--sensor-sparkline-warning);
+    color: var(--pf-t--global--text--color--status--warning--default);
 }
 
 .sensor-tab__count[data-state="danger"] {
     background: color-mix(in srgb, var(--sensor-sparkline-danger) 18%, transparent);
-    color: var(--sensor-sparkline-danger);
+    color: var(--pf-t--global--text--color--status--danger--default);
 }
 
-/* ---------- Summary KPIs ---------- */
-.sensor-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: var(--pf-t--global--spacer--md, 0.75rem);
-}
-
-.sensor-summary__card {
-    border: 1px solid var(--sensor-border);
-    border-radius: var(--sensor-card-radius);
-    padding: var(--pf-t--global--spacer--md, 0.75rem) var(--pf-t--global--spacer--lg, 1rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    background: var(--sensor-bg-surface);
-}
-
+/* ---------- Summary KPIs ----------
+   Layout and card surface come from PF Gallery/Card; only the inner
+   typography and severity accents live here. */
 .sensor-summary__label {
     color: var(--sensor-text-muted);
     font-size: var(--pf-t--global--font--size--xs, 0.75rem);
@@ -247,17 +179,6 @@ body {
 .sensor-summary__card--danger .sensor-summary__value { color: var(--sensor-sparkline-danger); }
 
 /* ---------- Toolbar ---------- */
-.sensor-toolbar {
-    --pf-v6-c-toolbar--PaddingInlineStart: 0;
-    --pf-v6-c-toolbar--PaddingInlineEnd: 0;
-    --pf-v6-c-toolbar--PaddingBlockEnd: 0;
-    --pf-v6-c-toolbar--PaddingBlockStart: 0;
-    border: 1px solid var(--sensor-border);
-    border-radius: var(--sensor-card-radius);
-    padding: var(--pf-t--global--spacer--sm, 0.5rem) var(--pf-t--global--spacer--md, 0.75rem);
-    background: var(--sensor-bg-surface);
-}
-
 .sensor-toolbar__search {
     min-inline-size: 220px;
 }
@@ -524,30 +445,6 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--pf-t--global--spacer--md, 0.75rem);
-}
-
-.sensor-skeleton__card {
-    border: 1px solid var(--sensor-border);
-    border-radius: var(--sensor-card-radius);
-    padding: var(--pf-t--global--spacer--md, 0.75rem);
-    block-size: 130px;
-    background:
-        linear-gradient(90deg,
-            var(--sensor-bg-surface) 0%,
-            var(--sensor-bg-hover) 50%,
-            var(--sensor-bg-surface) 100%);
-    background-size: 200% 100%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .sensor-skeleton__card {
-        animation: sensor-shimmer 1.4s linear infinite;
-    }
-}
-
-@keyframes sensor-shimmer {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
 }
 
 /* ---------- Modal ---------- */

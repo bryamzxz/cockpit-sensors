@@ -32,6 +32,66 @@ describe('useSensors helpers', () => {
         expect(result[0]).toMatchObject({ provider: 'hwmon', value: 50 });
     });
 
+    it('drops nvme-cli samples when the kernel nvme hwmon driver covers the drives', () => {
+        const samplesByProvider = new Map<string, SensorSample[]>();
+
+        samplesByProvider.set('hwmon', [
+            {
+                kind: 'temp',
+                id: 'hwmon3:temp1',
+                label: 'Composite',
+                value: 38,
+                chipId: 'hwmon3',
+                chipLabel: 'nvme',
+                chipName: 'nvme',
+            },
+        ]);
+
+        samplesByProvider.set('nvme', [
+            {
+                kind: 'temp',
+                id: '/dev/nvme0:temperature',
+                label: 'Samsung SSD',
+                value: 38,
+                chipId: '/dev/nvme0',
+                chipName: 'Samsung SSD',
+            },
+        ]);
+
+        const result = aggregateSamples(samplesByProvider);
+        expect(result).toHaveLength(1);
+        expect(result[0].provider).toBe('hwmon');
+    });
+
+    it('keeps nvme-cli samples when hwmon does not expose the drives', () => {
+        const samplesByProvider = new Map<string, SensorSample[]>();
+
+        samplesByProvider.set('hwmon', [
+            {
+                kind: 'temp',
+                id: 'hwmon0:temp1',
+                label: 'Core 0',
+                value: 50,
+                chipId: 'hwmon0',
+                chipName: 'coretemp',
+            },
+        ]);
+
+        samplesByProvider.set('nvme', [
+            {
+                kind: 'temp',
+                id: '/dev/nvme0:temperature',
+                label: 'Samsung SSD',
+                value: 38,
+                chipId: '/dev/nvme0',
+                chipName: 'Samsung SSD',
+            },
+        ]);
+
+        const result = aggregateSamples(samplesByProvider);
+        expect(result).toHaveLength(2);
+    });
+
     it('converts samples into sensor data grouped by chip and category', () => {
         const samples: SampleWithProvider[] = [
             {
