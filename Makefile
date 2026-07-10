@@ -3,7 +3,7 @@ PACKAGE_NAME := $(shell awk '/"name":/ {gsub(/[",]/, "", $$2); print $$2}' packa
 RPM_NAME := cockpit-$(PACKAGE_NAME)
 VERSION := $(shell T=$$(git describe 2>/dev/null) || T=1; echo $$T | tr '-' '.')
 ifeq ($(TEST_OS),)
-TEST_OS = centos-8-stream
+TEST_OS = fedora-43
 endif
 export TEST_OS
 TARFILE=$(RPM_NAME).tar.xz
@@ -187,10 +187,10 @@ bots: $(COCKPIT_REPO_STAMP)
 	test/common/make-bots
 
 $(NODE_MODULES_TEST): package.json
-	# if it exists already, npm install won't update it; force that so that we always get up-to-date packages
-	rm -f package-lock.json
-	# unset NODE_ENV, skips devDependencies otherwise
-	env -u NODE_ENV npm install --ignore-scripts
+	# reproducible installs from the committed lockfile; fall back to
+	# npm install only when the lock is missing or out of sync
+	# (unset NODE_ENV, skips devDependencies otherwise)
+	env -u NODE_ENV npm ci --ignore-scripts || env -u NODE_ENV npm install --ignore-scripts
 	env -u NODE_ENV npm prune
 
 .PHONY: all clean install devel-install devel-uninstall print-version dist node-cache rpm prepare-check check vm print-vm
@@ -203,7 +203,7 @@ deb:
 	mkdir -m 0755 -p "`pwd`/output/cockpit-$(PACKAGE_NAME)/DEBIAN"
 	mkdir -m 0755 -p "`pwd`/output/cockpit-$(PACKAGE_NAME)/usr/share/cockpit/$(PACKAGE_NAME)"
 	cp -r dist/* "`pwd`/output/cockpit-$(PACKAGE_NAME)/usr/share/cockpit/$(PACKAGE_NAME)"
-	cp packaging/cockpit-$(PACKAGE_NAME).control "`pwd`/output/cockpit-$(PACKAGE_NAME)/DEBIAN/control"
+	sed 's/%{VERSION}/$(VERSION)/' packaging/cockpit-$(PACKAGE_NAME).control > "`pwd`/output/cockpit-$(PACKAGE_NAME)/DEBIAN/control"
 	chmod 755 "`pwd`/output/cockpit-$(PACKAGE_NAME)/DEBIAN/control"
 	dpkg-deb -Zxz --build output/cockpit-$(PACKAGE_NAME)
 	mv "`pwd`/output/cockpit-$(PACKAGE_NAME).deb" "`pwd`/"

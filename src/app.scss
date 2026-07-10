@@ -19,14 +19,14 @@ body {
     --sensor-sparkline-normal: var(--pf-t--global--icon--color--status--info--default, var(--pf-v6-global--info-color--100));
 
     --sensor-card-radius: var(--pf-t--global--border--radius--medium, 6px);
-    --sensor-border: var(--pf-t--global--border--color--default, rgba(0, 0, 0, 0.12));
+    --sensor-border: var(--pf-t--global--border--color--default, rgb(0 0 0 / 12%));
     --sensor-text-muted: var(--pf-t--global--text--color--subtle, var(--pf-v6-global--Color--200));
     --sensor-bg-surface: var(--pf-t--global--background--color--secondary--default, transparent);
-    --sensor-bg-hover: var(--pf-t--global--background--color--action--plain--hover, rgba(0, 0, 0, 0.04));
+    --sensor-bg-hover: var(--pf-t--global--background--color--action--plain--hover, rgb(0 0 0 / 4%));
 }
 
 .pf-v6-theme-dark {
-    --sensor-bg-hover: rgba(255, 255, 255, 0.04);
+    --sensor-bg-hover: rgb(255 255 255 / 4%);
 }
 
 /* ---------- Page chrome ----------
@@ -97,16 +97,16 @@ body {
 }
 
 .sensor-app__status-pill--normal { color: var(--sensor-sparkline-normal); }
-.sensor-app__status-pill--warning { color: var(--sensor-sparkline-warning); border-color: currentColor; }
-.sensor-app__status-pill--danger { color: var(--sensor-sparkline-danger); border-color: currentColor; }
+.sensor-app__status-pill--warning { color: var(--sensor-sparkline-warning); border-color: currentcolor; }
+.sensor-app__status-pill--danger { color: var(--sensor-sparkline-danger); border-color: currentcolor; }
 
 .sensor-app__status-pill::before {
     content: "";
     inline-size: 0.5rem;
     block-size: 0.5rem;
     border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 0 0.25rem color-mix(in srgb, currentColor 18%, transparent);
+    background: currentcolor;
+    box-shadow: 0 0 0 0.25rem color-mix(in srgb, currentcolor 18%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -368,7 +368,7 @@ body {
 }
 
 @keyframes sensor-flash {
-    0% { background-color: color-mix(in srgb, currentColor 18%, transparent); }
+    0% { background-color: color-mix(in srgb, currentcolor 18%, transparent); }
     100% { background-color: transparent; }
 }
 
@@ -440,7 +440,7 @@ body {
 
 .sensor-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px color-mix(in srgb, currentColor 8%, transparent);
+    box-shadow: 0 4px 12px color-mix(in srgb, currentcolor 8%, transparent);
 }
 
 .sensor-card[data-pinned="true"] {
@@ -573,7 +573,7 @@ body {
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .sensor-app__hero,
     .sensor-app__banners,
     .sensor-app__content {

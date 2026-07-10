@@ -2,11 +2,16 @@
 
 Cockpit Sensors is a [Cockpit](https://cockpit-project.org/) module that displays
 hardware telemetry collected from the host system. The frontend consumes
-standard Linux monitoring interfaces such as `/sys/class/hwmon`,
-`sensors -j` (lm-sensors) and `nvme smart-log` (nvme-cli) and surfaces the
-available temperature, fan and voltage readings. The project ships a browser
-bundle that can be installed on any host running Cockpit and builds through a
-custom `build.js` pipeline powered by esbuild, React and PatternFly.
+standard Linux monitoring interfaces — `/sys/class/hwmon`, `sensors -j`
+(lm-sensors), `/sys/class/powercap` (Intel RAPL power draw), cpufreq,
+`nvme smart-log` (nvme-cli) and `smartctl` (smartmontools) — and surfaces the
+available temperature, fan, voltage, power and frequency readings. The project
+ships a browser bundle that can be installed on any host running Cockpit and
+builds through a custom `build.js` pipeline powered by esbuild, React and
+PatternFly 6.
+
+> This repository is an actively maintained fork of
+> [ocristopfer/cockpit-sensors](https://github.com/ocristopfer/cockpit-sensors).
 
 ## Requirements
 
@@ -16,16 +21,17 @@ custom `build.js` pipeline powered by esbuild, React and PatternFly.
 - Optional but recommended: `make`, `gettext` and a working Cockpit instance for
   integration tests.
 
-Bootstrap a working copy with the provided script, which clones Cockpit (or
-reuses `COCKPIT_DIR`), links the shared `pkg/` directory, installs dependencies
-and performs an initial build:
+Bootstrap a working copy with the provided script, which fetches the pinned
+Cockpit shared library (`make pkg/lib`), installs dependencies and performs an
+initial build:
 
 ```bash
 ./scripts/setup.sh
 ```
 
 > ℹ️ The setup script prefers `npm ci` and falls back to `npm install && npm
-> dedupe` when the stricter command is not available.
+> dedupe` when the stricter command is not available. `pkg/lib` is pinned to a
+> specific Cockpit commit in the `Makefile`, so local builds match CI exactly.
 
 ## Development workflow
 
@@ -39,6 +45,8 @@ rebuilding when files change.
 | Build the production bundle | `npm run build`
 | Run the Vitest suite with coverage | `npm run test`
 | Run ESLint over the repository | `npm run lint`
+| Run Stylelint over the stylesheets | `npm run stylelint`
+| Type-check without emitting | `npm run typecheck`
 
 After pulling updates run the maintenance helper to refresh dependencies only
 when `package-lock.json` changed and rebuild the bundle:
@@ -47,11 +55,10 @@ when `package-lock.json` changed and rebuild the bundle:
 ./scripts/maint.sh
 ```
 
-The script also fetches updates in the neighbouring Cockpit checkout (or the
-location provided through `COCKPIT_DIR`) and rewrites the `pkg/` symlink to
-point at the latest sources. Continuous integration jobs can run
-`./scripts/setup.sh` for a clean install and `./scripts/maint.sh` for
-incremental builds without repeating expensive dependency work.
+The script also refreshes the pinned Cockpit shared library through
+`make pkg/lib`. Continuous integration jobs can run `./scripts/setup.sh` for a
+clean install and `./scripts/maint.sh` for incremental builds without
+repeating expensive dependency work.
 
 ### Building and watching
 
@@ -83,17 +90,26 @@ the scripts, in which case the tooling leaves your custom value untouched.
 At runtime the Sensors page evaluates the available telemetry backends in the
 following order:
 
-1. `/sys/class/hwmon` for direct kernel sensor exposure.
+1. `/sys/class/hwmon` for direct kernel sensor exposure (polled at the
+   configured refresh interval).
 2. `sensors -j` from the lm-sensors package.
-3. `nvme smart-log <device> -o json` from nvme-cli for NVMe device temperatures.
-4. `smartctl -i -A -j <device>` from smartmontools for SATA/SAS drive temperatures.
+3. `/sys/class/powercap` (Intel RAPL) for package/domain power draw.
+4. `nvme smart-log <device> -o json` from nvme-cli for NVMe device temperatures.
+5. `smartctl -i -A -n standby -j <device>` from smartmontools for SATA/SAS
+   drive temperatures (never wakes disks that are in standby; disk providers
+   poll at a slower fixed interval and cache the device scan).
+6. cpufreq (`scaling_cur_freq`) for per-core CPU frequencies.
 
-The first backend that reports data for a given sensor kind feeds the UI, while
-NVMe and SATA drive telemetry is always added as an extra source when available. If no backend
-is present, the page renders a banner with setup instructions and offers a
-single-click copy of the recommended installation command:
+The first primary backend (hwmon, then lm-sensors) that reports data feeds the
+UI, while power, drive and frequency telemetry is always added as an extra
+source when available. If no backend is present, the page renders a banner with
+setup instructions and offers single-click copies of the recommended
+installation commands:
 
 ```bash
+# Fedora / RHEL / CentOS
+sudo dnf install lm_sensors nvme-cli smartmontools && sudo sensors-detect --auto
+# Debian / Ubuntu
 sudo apt install lm-sensors nvme-cli smartmontools && sudo sensors-detect --auto
 ```
 
@@ -136,12 +152,14 @@ rm -rf ~/.local/share/cockpit/sensors
 
 ## Testing and linting
 
-- `npm run test` executes the full [Vitest](https://vitest.dev/) suite. Use
-  `npm run test -- --watch` or `npm run test:watch` for an interactive loop.
-- `npm run lint` runs ESLint using the repository configuration. To lint styles,
-  run Stylelint directly: `npx stylelint "src/**/*.scss"`.
+- `npm run test` executes the full [Vitest](https://vitest.dev/) suite with
+  coverage gates. Use `npm run test:watch` for an interactive loop.
+- `npm run lint` runs ESLint using the repository configuration.
+- `npm run stylelint` checks the stylesheets (`stylelint:fix` autofixes).
+- `npm run typecheck` runs the TypeScript compiler without emitting.
 
-Always run both commands before sending changes for review or release.
+CI runs all four on every pull request; run them locally before sending
+changes for review or release.
 
 ## Releasing
 

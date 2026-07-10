@@ -14,5 +14,15 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         setupFiles: [resolve(__dirname, 'src/__tests__/setup.ts')],
+        coverage: {
+            // Gate slightly below current coverage (~64% stmts / 46% branch)
+            // so regressions fail CI while leaving headroom for refactors.
+            thresholds: {
+                statements: 60,
+                branches: 42,
+                functions: 58,
+                lines: 60,
+            },
+        },
     },
 });
