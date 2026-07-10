@@ -32,6 +32,10 @@ jobs:
       - name: Build release
         run: make dist
 
+      # the tasks container is Fedora-based and does not ship dpkg-deb
+      - name: Install dpkg for the Debian package build
+        run: dnf install -y dpkg
+
       - name: Build Deb release
         run: make deb
 
