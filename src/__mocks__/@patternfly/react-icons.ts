@@ -13,6 +13,7 @@ export const StarIcon = createIcon('StarIcon');
 export const SearchIcon = createIcon('SearchIcon');
 export const BarsIcon = createIcon('BarsIcon');
 export const ExclamationCircleIcon = createIcon('ExclamationCircleIcon');
+export const FilterIcon = createIcon('FilterIcon');
 export const ListIcon = createIcon('ListIcon');
 export const GripVerticalIcon = createIcon('GripVerticalIcon');
 export const ThIcon = createIcon('ThIcon');

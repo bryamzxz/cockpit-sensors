@@ -22,12 +22,14 @@ import {
     Alert,
     AlertActionLink,
     AlertVariant,
+    Badge,
     Button,
     ClipboardCopy,
     Label,
     Page,
     PageGroup,
     PageSection,
+    Skeleton,
     Tab,
     TabTitleText,
     Tabs,
@@ -397,12 +399,18 @@ export const Application: React.FC = () => {
                             </p>
                         </div>
                         <div className="sensor-app__meta">
-                            <span
-                                className={`sensor-app__status-pill sensor-app__status-pill--${pillVariant}${isPaused ? ' sensor-app__status-pill--idle' : ''}`}
-                                role="status"
-                                aria-live="polite"
-                            >
-                                {statusPillLabel}
+                            <span role="status">
+                                {isPaused && pillVariant === 'normal'
+                                    ? <Label color="grey">{statusPillLabel}</Label>
+                                    : (
+                                        <Label
+                                            status={pillVariant === 'danger'
+                                                ? 'danger'
+                                                : pillVariant === 'warning' ? 'warning' : 'success'}
+                                        >
+                                            {statusPillLabel}
+                                        </Label>
+                                    )}
                             </span>
                             <LastUpdated timestamp={lastUpdate} />
                         </div>
@@ -466,12 +474,13 @@ export const Application: React.FC = () => {
                                     <TabTitleText>
                                         <span className="sensor-tab__title">
                                             {tab.title}
-                                            <span
+                                            <Badge
+                                                isRead={state === 'normal'}
                                                 className="sensor-tab__count"
                                                 data-state={state}
                                             >
                                                 {count}
-                                            </span>
+                                            </Badge>
                                         </span>
                                     </TabTitleText>
                                 }
@@ -486,9 +495,9 @@ export const Application: React.FC = () => {
                                         aria-label={_('Loading sensor data...')}
                                         role="status"
                                     >
-                                        <div className="sensor-skeleton__card" />
-                                        <div className="sensor-skeleton__card" />
-                                        <div className="sensor-skeleton__card" />
+                                        <Skeleton height="130px" screenreaderText={_('Loading sensor data...')} />
+                                        <Skeleton height="130px" />
+                                        <Skeleton height="130px" />
                                     </div>
                                 )}
                                 {!isLoading && (

@@ -11,12 +11,14 @@ import {
     ToolbarContent,
     ToolbarGroup,
     ToolbarItem,
+    ToolbarToggleGroup,
     Tooltip,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
     DownloadIcon,
     ExclamationCircleIcon,
+    FilterIcon,
     GripVerticalIcon,
     ListIcon,
     OutlinedStarIcon,
@@ -576,66 +578,88 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                         />
                     </ToolbarItem>
 
-                    {onViewModeChange && (
-                        <ToolbarItem>
-                            <ToggleGroup aria-label={_('Select view mode')}>
-                                <ToggleGroupItem
+                    <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="md">
+                        {onViewModeChange && (
+                            <ToolbarItem>
+                                <ToggleGroup aria-label={_('Select view mode')}>
+                                    <ToggleGroupItem
                                     icon={<ListIcon />}
                                     aria-label={_('Show as table')}
                                     buttonId="sensor-view-table"
                                     isSelected={viewMode === 'table'}
                                     onChange={() => onViewModeChange('table')}
                                     text={_('Table')}
-                                />
-                                <ToggleGroupItem
+                                    />
+                                    <ToggleGroupItem
                                     icon={<GripVerticalIcon />}
                                     aria-label={_('Show as cards')}
                                     buttonId="sensor-view-cards"
                                     isSelected={viewMode === 'cards'}
                                     onChange={() => onViewModeChange('cards')}
                                     text={_('Cards')}
-                                />
-                            </ToggleGroup>
-                        </ToolbarItem>
-                    )}
+                                    />
+                                </ToggleGroup>
+                            </ToolbarItem>
+                        )}
 
-                    <ToolbarItem>
-                        <span className="sensor-toolbar__group-label">{_('Refresh')}</span>
-                        <ToggleGroup aria-label={_('Refresh interval')}>
-                            {SENSOR_REFRESH_OPTIONS.map(option => (
-                                <ToggleGroupItem
+                        <ToolbarItem>
+                            <span className="sensor-toolbar__group-label">{_('Refresh')}</span>
+                            <ToggleGroup aria-label={_('Refresh interval')}>
+                                {SENSOR_REFRESH_OPTIONS.map(option => (
+                                    <ToggleGroupItem
                                     key={option}
                                     text={REFRESH_LABELS[option] ?? `${option / 1000}s`}
                                     buttonId={`sensor-refresh-${option}`}
                                     isSelected={refreshMs === option}
                                     onChange={() => onRefreshChange(option)}
                                     aria-label={`${option / 1000} ${_('seconds')}`}
-                                />
-                            ))}
-                        </ToggleGroup>
-                    </ToolbarItem>
+                                    />
+                                ))}
+                            </ToggleGroup>
+                        </ToolbarItem>
 
-                    {category === 'temperature' && (
-                        <ToolbarItem>
-                            <span className="sensor-toolbar__group-label">{_('Unit')}</span>
-                            <ToggleGroup aria-label={_('Temperature unit')}>
-                                <ToggleGroupItem
+                        {category === 'temperature' && (
+                            <ToolbarItem>
+                                <span className="sensor-toolbar__group-label">{_('Unit')}</span>
+                                <ToggleGroup aria-label={_('Temperature unit')}>
+                                    <ToggleGroupItem
                                     text="°C"
                                     buttonId="sensor-unit-c"
                                     isSelected={unit === 'C'}
                                     onChange={() => onUnitChange('C')}
                                     aria-label={_('Celsius')}
-                                />
-                                <ToggleGroupItem
+                                    />
+                                    <ToggleGroupItem
                                     text="°F"
                                     buttonId="sensor-unit-f"
                                     isSelected={unit === 'F'}
                                     onChange={() => onUnitChange('F')}
                                     aria-label={_('Fahrenheit')}
-                                />
-                            </ToggleGroup>
-                        </ToolbarItem>
-                    )}
+                                    />
+                                </ToggleGroup>
+                            </ToolbarItem>
+                        )}
+
+                        {onDensityChange && (
+                            <ToolbarItem>
+                                <span className="sensor-toolbar__group-label">{_('Density')}</span>
+                                <ToggleGroup aria-label={_('Table density')}>
+                                    <ToggleGroupItem
+                                    text={_('Compact')}
+                                    buttonId="sensor-density-compact"
+                                    isSelected={density === 'compact'}
+                                    onChange={() => onDensityChange('compact')}
+                                    />
+                                    <ToggleGroupItem
+                                    text={_('Comfortable')}
+                                    buttonId="sensor-density-comfortable"
+                                    isSelected={density === 'comfortable'}
+                                    onChange={() => onDensityChange('comfortable')}
+                                    />
+                                </ToggleGroup>
+                            </ToolbarItem>
+                        )}
+                    </ToolbarToggleGroup>
 
                     {onPauseToggle && (
                         <ToolbarItem>
@@ -650,26 +674,6 @@ export const SensorTable: React.FC<SensorTableProps> = ({
                                     {isPaused ? _('Resume') : _('Pause')}
                                 </Button>
                             </Tooltip>
-                        </ToolbarItem>
-                    )}
-
-                    {onDensityChange && (
-                        <ToolbarItem visibility={{ default: 'hidden', md: 'visible' }}>
-                            <span className="sensor-toolbar__group-label">{_('Density')}</span>
-                            <ToggleGroup aria-label={_('Table density')}>
-                                <ToggleGroupItem
-                                    text={_('Compact')}
-                                    buttonId="sensor-density-compact"
-                                    isSelected={density === 'compact'}
-                                    onChange={() => onDensityChange('compact')}
-                                />
-                                <ToggleGroupItem
-                                    text={_('Comfortable')}
-                                    buttonId="sensor-density-comfortable"
-                                    isSelected={density === 'comfortable'}
-                                    onChange={() => onDensityChange('comfortable')}
-                                />
-                            </ToggleGroup>
                         </ToolbarItem>
                     )}
 
