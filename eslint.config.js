@@ -5,7 +5,10 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 
-const reactHooksRecommended = reactHooks.configs["flat/recommended"][0];
+// v6 exposed an array under "flat/recommended"; v7 exposes an object under
+// configs.flat.recommended. Support both instead of indexing into internals.
+const reactHooksFlat = reactHooks.configs.flat?.recommended ?? reactHooks.configs["flat/recommended"];
+const reactHooksRecommended = Array.isArray(reactHooksFlat) ? reactHooksFlat[0] : reactHooksFlat;
 
 const baseParserOptions = {
     ecmaFeatures: {
@@ -48,6 +51,9 @@ const sharedReactRules = {
     "react/jsx-indent-props": "off",
     "space-before-function-paren": "off",
     "react-hooks/exhaustive-deps": "error",
+    // New in react-hooks v7; flags the setState-after-poll pattern this
+    // dashboard uses to mirror external sensor data into React state.
+    "react-hooks/set-state-in-effect": "off",
 };
 
 export default [

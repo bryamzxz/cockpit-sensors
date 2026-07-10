@@ -136,7 +136,9 @@ export const useSensors = (
     // Providers consult this ref before each poll, so pausing never tears
     // down and re-bootstraps the provider stack.
     const pausedRef = React.useRef(isPaused);
-    pausedRef.current = isPaused;
+    React.useEffect(() => {
+        pausedRef.current = isPaused;
+    }, [isPaused]);
 
     React.useEffect(() => {
         let cancelled = false;

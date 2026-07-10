@@ -17,20 +17,20 @@
 /*.whl
 /bots
 /cockpit-*.tar.xz
-/cockpit-navigator.spec
+/cockpit-sensors.deb
+/cockpit-sensors.spec
 /coverage/
 /dist/
-/pkg
-/pkg/
 /node_modules/
+/pkg/
 /tmp/
 /tools/
- 
+
 # subdirs (/subdir/...)
 /packaging/arch/PKGBUILD
 /packaging/debian/changelog
 /po/*.pot
- /po/LINGUAS
+/po/LINGUAS
 /test/common/
 /test/images/
 /test/static-code

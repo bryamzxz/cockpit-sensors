@@ -12,7 +12,7 @@
 
 .sensor-sparkline polyline,
 .sensor-sparkline path:not(.sensor-sparkline__area) {
-    stroke: currentColor;
+    stroke: currentcolor;
     fill: none;
     stroke-width: 1.6;
     stroke-linecap: round;
@@ -26,12 +26,12 @@
 }
 
 .sensor-sparkline__gradient-top {
-    stop-color: currentColor;
+    stop-color: currentcolor;
     stop-opacity: 0.35;
 }
 
 .sensor-sparkline__gradient-bottom {
-    stop-color: currentColor;
+    stop-color: currentcolor;
     stop-opacity: 0;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .sensor-sparkline__dot {
-    fill: currentColor;
+    fill: currentcolor;
     stroke: var(--pf-t--global--background--color--primary--default);
     stroke-width: 1.5;
 }
