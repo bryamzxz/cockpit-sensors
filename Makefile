@@ -12,8 +12,9 @@ SPEC=$(RPM_NAME).spec
 PREFIX ?= /usr/local
 APPSTREAMFILE=org.cockpit-project.$(PACKAGE_NAME).metainfo.xml
 VM_IMAGE=$(CURDIR)/test/images/$(TEST_OS)
-# stamp file to check for node_modules/
-NODE_MODULES_TEST=package-lock.json
+# stamp file to check for node_modules/; must live inside node_modules so a
+# fresh checkout (which already ships package-lock.json) still triggers npm ci
+NODE_MODULES_TEST=node_modules/.package-lock.json
 # one example file in dist/ from bundler to check if that already ran
 DIST_TEST=dist/manifest.json
 # one example file in pkg/lib to check if it was already checked out
@@ -125,7 +126,7 @@ $(TARFILE): $(DIST_TEST) $(SPEC)
 	if type appstream-util >/dev/null 2>&1; then appstream-util validate-relax --nonet *.metainfo.xml; fi
 	tar --xz $(TAR_ARGS) -cf $(TARFILE) --transform 's,^,$(RPM_NAME)/,' \
 		--exclude packaging/$(SPEC).in --exclude node_modules \
-		$$(git ls-files) $(COCKPIT_REPO_FILES) $(NODE_MODULES_TEST) $(SPEC) dist/
+		$$(git ls-files) $(COCKPIT_REPO_FILES) $(SPEC) dist/
 
 $(NODE_CACHE): $(NODE_MODULES_TEST)
 	tar --xz $(TAR_ARGS) -cf $@ node_modules
@@ -186,12 +187,11 @@ codecheck: test/common/static-code $(NODE_MODULES_TEST)
 bots: $(COCKPIT_REPO_STAMP)
 	test/common/make-bots
 
-$(NODE_MODULES_TEST): package.json
+$(NODE_MODULES_TEST): package.json package-lock.json
 	# reproducible installs from the committed lockfile; fall back to
 	# npm install only when the lock is missing or out of sync
 	# (unset NODE_ENV, skips devDependencies otherwise)
 	env -u NODE_ENV npm ci --ignore-scripts || env -u NODE_ENV npm install --ignore-scripts
-	env -u NODE_ENV npm prune
 
 .PHONY: all clean install devel-install devel-uninstall print-version dist node-cache rpm prepare-check check vm print-vm
 
